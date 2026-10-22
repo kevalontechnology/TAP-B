@@ -129,7 +129,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
 
       <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-semibold text-amber-400">
         <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-        Temporarily Paused
+        QR Code Disabled &bull; Temporarily Paused
       </div>
     </div>
 

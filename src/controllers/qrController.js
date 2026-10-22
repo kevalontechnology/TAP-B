@@ -19,6 +19,7 @@ import {
   updateStatusSchema,
 } from '../validators/qrValidator.js';
 import { logAuditAction } from '../services/auditService.js';
+import { getActiveBaseUrl } from '../utils/baseUrlHelper.js';
 
 export async function create(req, res, next) {
   try {
@@ -92,9 +93,15 @@ export async function list(req, res, next) {
       QRCode.countDocuments(query),
     ]);
 
+    const baseUrl = await getActiveBaseUrl(req);
+    const formattedQrs = qrs.map((qr) => ({
+      ...qr.toJSON(),
+      shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+    }));
+
     return res.status(200).json({
       success: true,
-      data: qrs,
+      data: formattedQrs,
       pagination: {
         total,
         page: pageNum,
@@ -120,9 +127,15 @@ export async function getById(req, res, next) {
       });
     }
 
+    const baseUrl = await getActiveBaseUrl(req);
+    const qrObj = {
+      ...qr.toJSON(),
+      shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+    };
+
     return res.status(200).json({
       success: true,
-      data: qr,
+      data: qrObj,
     });
   } catch (err) {
     next(err);
@@ -166,10 +179,16 @@ export async function update(req, res, next) {
       performedBy: req.user?._id,
     });
 
+    const baseUrl = await getActiveBaseUrl(req);
+    const qrObj = {
+      ...qr.toJSON(),
+      shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+    };
+
     return res.status(200).json({
       success: true,
       message: 'QR code updated successfully',
-      data: qr,
+      data: qrObj,
     });
   } catch (err) {
     next(err);
@@ -180,10 +199,16 @@ export async function updateDestinationHandler(req, res, next) {
   try {
     const validated = updateDestinationSchema.parse(req.body);
     const qr = await updateDestination(req.params.id, validated, req.user);
+    const baseUrl = await getActiveBaseUrl(req);
+    const qrObj = {
+      ...qr.toJSON(),
+      shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+    };
+
     return res.status(200).json({
       success: true,
       message: 'Destination updated successfully',
-      data: qr,
+      data: qrObj,
     });
   } catch (err) {
     next(err);
@@ -194,10 +219,16 @@ export async function assignHandler(req, res, next) {
   try {
     const validated = assignQrSchema.parse(req.body);
     const qr = await assignQr(req.params.id, validated, req.user);
+    const baseUrl = await getActiveBaseUrl(req);
+    const qrObj = {
+      ...qr.toJSON(),
+      shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+    };
+
     return res.status(200).json({
       success: true,
       message: 'QR Code assigned successfully',
-      data: qr,
+      data: qrObj,
     });
   } catch (err) {
     next(err);
@@ -208,10 +239,16 @@ export async function updateStatusHandler(req, res, next) {
   try {
     const validated = updateStatusSchema.parse(req.body);
     const qr = await updateStatus(req.params.id, validated.status, req.user);
+    const baseUrl = await getActiveBaseUrl(req);
+    const qrObj = {
+      ...qr.toJSON(),
+      shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+    };
+
     return res.status(200).json({
       success: true,
       message: `QR Code status updated to ${validated.status}`,
-      data: qr,
+      data: qrObj,
     });
   } catch (err) {
     next(err);
@@ -256,11 +293,13 @@ export async function downloadSingle(req, res, next) {
       });
     }
 
+    const baseUrl = await getActiveBaseUrl(req);
+    const dynamicShortUrl = `${baseUrl}/q/${qr.publicCode}`;
     const format = (req.query.format || 'png').toLowerCase();
     const filename = `Tapzy-${qr.publicCode}`;
 
     if (format === 'svg') {
-      const svg = await generateQrSvgString(qr.shortUrl, {
+      const svg = await generateQrSvgString(dynamicShortUrl, {
         fgColor: qr.style?.fgColor || '#000000',
         bgColor: qr.style?.bgColor || '#FFFFFF',
       });
@@ -271,7 +310,7 @@ export async function downloadSingle(req, res, next) {
     }
 
     // Default to PNG
-    const pngBuffer = await generateQrPngBuffer(qr.shortUrl, {
+    const pngBuffer = await generateQrPngBuffer(dynamicShortUrl, {
       fgColor: qr.style?.fgColor || '#000000',
       bgColor: qr.style?.bgColor || '#FFFFFF',
       width: 1024,
@@ -306,7 +345,8 @@ export async function downloadBatchCsv(req, res, next) {
       });
     }
 
-    const csvData = generateCsvContent(qrs);
+    const baseUrl = await getActiveBaseUrl(req);
+    const csvData = generateCsvContent(qrs, baseUrl);
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="Tapzy-Batch-${batchId}.csv"`);
     return res.send(csvData);
@@ -323,7 +363,8 @@ export async function exportAllCsv(req, res, next) {
     if (batchId) query.batchId = batchId;
 
     const qrs = await QRCode.find(query).sort({ createdAt: -1 });
-    const csvData = generateCsvContent(qrs);
+    const baseUrl = await getActiveBaseUrl(req);
+    const csvData = generateCsvContent(qrs, baseUrl);
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="Tapzy-QRCodes-Export.csv"`);

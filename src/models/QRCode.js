@@ -21,7 +21,7 @@ const qrCodeSchema = new mongoose.Schema(
     },
     shortUrl: {
       type: String,
-      required: true,
+      default: '',
     },
     destinationType: {
       type: String,

@@ -1,6 +1,7 @@
 import useragent from 'useragent';
 import { QRScanLog } from '../models/QRScanLog.js';
 import { QRCode } from '../models/QRCode.js';
+import { getActiveBaseUrl } from '../utils/baseUrlHelper.js';
 
 /**
  * Record a scan event asynchronously
@@ -132,10 +133,16 @@ export async function getDashboardOverview() {
   ]);
 
   // Top 5 scanned QR Codes
-  const topQrs = await QRCode.find({ scanCount: { $gt: 0 } })
+  const baseUrl = await getActiveBaseUrl();
+  const topQrsRaw = await QRCode.find({ scanCount: { $gt: 0 } })
     .sort({ scanCount: -1 })
     .limit(5)
-    .select('title publicCode shortUrl destinationUrl scanCount status');
+    .select('title publicCode destinationUrl scanCount status');
+
+  const topQrs = topQrsRaw.map((qr) => ({
+    ...qr.toJSON(),
+    shortUrl: `${baseUrl}/q/${qr.publicCode}`,
+  }));
 
   return {
     metrics: {

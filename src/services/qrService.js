@@ -6,6 +6,7 @@ import { generatePublicCode, generateBatchId } from '../utils/cryptoCode.js';
 import { validateDestinationSafety } from '../utils/urlSafety.js';
 import { generateQrPngBuffer } from '../utils/qrGenerator.js';
 import { logAuditAction } from './auditService.js';
+import { getActiveBaseUrl } from '../utils/baseUrlHelper.js';
 
 /**
  * Generate a unique public code that does not exist in DB
@@ -25,11 +26,11 @@ async function getUniquePublicCode() {
 }
 
 /**
- * Create a single QR code
+ * Create a single QR code - Only stores publicCode in DB!
  */
 export async function createSingleQr(data, user) {
   const publicCode = await getUniquePublicCode();
-  const shortUrl = `${config.publicQrBaseUrl}/q/${publicCode}`;
+  const baseUrl = await getActiveBaseUrl();
 
   let status = 'UNASSIGNED';
   let destinationUrl = '';
@@ -49,11 +50,12 @@ export async function createSingleQr(data, user) {
     }
   }
 
+  // Store only the code in MongoDB! No hardcoded shortUrl stored.
   const qr = await QRCode.create({
     publicCode,
     title: data.title,
     description: data.description || '',
-    shortUrl,
+    shortUrl: '',
     destinationType: data.destinationType || 'WEBSITE',
     destinationUrl,
     customData: data.customData || null,
@@ -70,18 +72,21 @@ export async function createSingleQr(data, user) {
     updatedBy: user?._id || null,
   });
 
+  const qrObj = qr.toJSON();
+  qrObj.shortUrl = `${baseUrl}/q/${publicCode}`;
+
   await logAuditAction({
     qrCodeId: qr._id,
     action: 'CREATED',
-    newValue: qr.toJSON(),
+    newValue: qrObj,
     performedBy: user?._id,
   });
 
-  return qr;
+  return qrObj;
 }
 
 /**
- * Generate bulk QR codes
+ * Generate bulk QR codes - Only stores publicCode in DB!
  */
 export async function generateBulkQrs(data, user) {
   const batchId = generateBatchId('TAPZY');
@@ -110,7 +115,7 @@ export async function generateBulkQrs(data, user) {
         publicCode,
         title: `${data.batchName} #${String(i + 1).padStart(4, '0')}`,
         description: `Generated in batch ${data.batchName} (${batchId})`,
-        shortUrl: `${config.publicQrBaseUrl}/q/${publicCode}`,
+        shortUrl: '', // In backend only store publicCode!
         destinationType: 'WEBSITE',
         destinationUrl: '',
         status: 'UNASSIGNED',
@@ -282,6 +287,8 @@ export async function streamBatchZip(batchId, res) {
     throw new Error('No QR codes found for this batch');
   }
 
+  const baseUrl = await getActiveBaseUrl();
+
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="Tapzy-Batch-${batchId}.zip"`);
 
@@ -293,9 +300,10 @@ export async function streamBatchZip(batchId, res) {
 
   archive.pipe(res);
 
-  // Add individual QR code PNG files
+  // Add individual QR code PNG files with dynamic Short URL
   for (const qr of qrs) {
-    const pngBuffer = await generateQrPngBuffer(qr.shortUrl, {
+    const dynamicShortUrl = `${baseUrl}/q/${qr.publicCode}`;
+    const pngBuffer = await generateQrPngBuffer(dynamicShortUrl, {
       fgColor: qr.style?.fgColor || '#000000',
       bgColor: qr.style?.bgColor || '#FFFFFF',
       width: 1024,
@@ -303,17 +311,17 @@ export async function streamBatchZip(batchId, res) {
     archive.append(pngBuffer, { name: `${qr.publicCode}-${qr.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.png` });
   }
 
-  // Also include a CSV index inside the ZIP
-  const csvContent = generateCsvContent(qrs);
+  // Also include a CSV index inside the ZIP with dynamic base URL
+  const csvContent = generateCsvContent(qrs, baseUrl);
   archive.append(csvContent, { name: `Batch-${batchId}-Index.csv` });
 
   await archive.finalize();
 }
 
 /**
- * Generate CSV string from QR code array
+ * Generate CSV string from QR code array with dynamic base URL
  */
-export function generateCsvContent(qrs) {
+export function generateCsvContent(qrs, baseUrl = 'https://qr.tapzy.in') {
   const headers = [
     'Public Code',
     'Title',
@@ -328,19 +336,22 @@ export function generateCsvContent(qrs) {
     'Created At',
   ];
 
-  const rows = qrs.map((qr) => [
-    `"${qr.publicCode}"`,
-    `"${(qr.title || '').replace(/"/g, '""')}"`,
-    `"${qr.shortUrl}"`,
-    `"${qr.status}"`,
-    `"${qr.destinationType || ''}"`,
-    `"${(qr.destinationUrl || '').replace(/"/g, '""')}"`,
-    `"${(qr.assignedTo?.customerName || '').replace(/"/g, '""')}"`,
-    `"${(qr.assignedTo?.customerRefId || '').replace(/"/g, '""')}"`,
-    qr.scanCount || 0,
-    `"${qr.batchId || ''}"`,
-    `"${qr.createdAt ? qr.createdAt.toISOString() : ''}"`,
-  ]);
+  const rows = qrs.map((qr) => {
+    const dynamicShortUrl = `${baseUrl}/q/${qr.publicCode}`;
+    return [
+      `"${qr.publicCode}"`,
+      `"${(qr.title || '').replace(/"/g, '""')}"`,
+      `"${dynamicShortUrl}"`,
+      `"${qr.status}"`,
+      `"${qr.destinationType || ''}"`,
+      `"${(qr.destinationUrl || '').replace(/"/g, '""')}"`,
+      `"${(qr.assignedTo?.customerName || '').replace(/"/g, '""')}"`,
+      `"${(qr.assignedTo?.customerRefId || '').replace(/"/g, '""')}"`,
+      qr.scanCount || 0,
+      `"${qr.batchId || ''}"`,
+      `"${qr.createdAt ? qr.createdAt.toISOString() : ''}"`,
+    ];
+  });
 
   return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
 }

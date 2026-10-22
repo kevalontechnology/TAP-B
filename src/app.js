@@ -13,6 +13,7 @@ import userRoutes from './routes/userRoutes.js';
 import qrRoutes from './routes/qrRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import redirectRoutes from './routes/redirectRoutes.js';
+import settingRoutes from './routes/settingRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,6 +71,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/qr', qrRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/settings', settingRoutes);
 
 // 404 for unhandled API routes
 app.use('/api/*', (req, res) => {

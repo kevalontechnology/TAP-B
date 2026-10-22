@@ -91,7 +91,8 @@ export async function requireAuth(req, res, next) {
  * RBAC authorization middleware
  * @param {string[]} roles - Allowed roles e.g. ['SUPER_ADMIN', 'ADMIN']
  */
-export function requireRole(roles = []) {
+export function requireRole(...roleArgs) {
+  const roles = Array.isArray(roleArgs[0]) ? roleArgs[0] : roleArgs;
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -101,7 +102,7 @@ export function requireRole(roles = []) {
     }
 
     const userRole = (req.user.role || '').toUpperCase().replace(/\s+/g, '_');
-    const normalizedRoles = roles.map((r) => r.toUpperCase().replace(/\s+/g, '_'));
+    const normalizedRoles = roles.map((r) => String(r).toUpperCase().replace(/\s+/g, '_'));
 
     if (!normalizedRoles.includes(userRole) && userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
       return res.status(403).json({
