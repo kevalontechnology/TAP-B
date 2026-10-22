@@ -14,6 +14,11 @@ import qrRoutes from './routes/qrRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import redirectRoutes from './routes/redirectRoutes.js';
 import settingRoutes from './routes/settingRoutes.js';
+import requestRoutes from './routes/requestRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import leadRoutes from './routes/leadRoutes.js';
+import publicProfileRoutes from './routes/publicProfileRoutes.js';
+import { trackLinkAndRedirect, downloadPublicVcf, getPublicProfileData } from './controllers/publicProfileController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,13 +70,24 @@ app.get('/health', (req, res) => {
 // 1. Dynamic Public QR Redirect Engine: GET /q/:publicCode
 app.use('/q', redirectRoutes);
 
-// 2. Protected & Public REST APIs
+// 2. Tracked Social Link Redirection Engine: GET /t/link/:profileId/:platform
+app.get('/t/link/:profileId/:platform', trackLinkAndRedirect);
+
+// 3. Public Profile & vCard Web Handlers: GET /p/:username & GET /p/:username/vcf
+app.get('/p/:username/vcf', downloadPublicVcf);
+app.get('/p/:username', getPublicProfileData);
+
+// 4. Protected & Public REST APIs
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/qr', qrRoutes);
+app.use('/api/requests', requestRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/leads', leadRoutes);
+app.use('/api/public', publicProfileRoutes);
 
 // 404 for unhandled API routes
 app.use('/api/*', (req, res) => {

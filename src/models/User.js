@@ -22,8 +22,26 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      default: 'STAFF',
+      enum: ['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CUSTOMER'],
+      default: 'CUSTOMER',
       index: true,
+    },
+    phone: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    avatarUrl: {
+      type: String,
+      default: '',
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
     },
     isActive: {
       type: Boolean,

@@ -38,6 +38,20 @@ const qrRequestSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    resolvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
+    adminNote: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,
