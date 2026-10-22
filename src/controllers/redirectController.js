@@ -103,17 +103,17 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 sm:p-6 selection:bg-amber-500 selection:text-slate-950">
-  {/* Ambient Background Glows */}
+  <!-- Ambient Background Glows -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
     <div class="absolute -top-32 -left-32 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] pulse-ring"></div>
     <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pulse-ring" style="animation-delay: 1.5s;"></div>
   </div>
 
   <div class="max-w-md w-full glass-panel rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all duration-300">
-    {/* Subtle gradient border line at top */}
+    <!-- Subtle gradient border line at top -->
     <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500/40 via-orange-500 to-amber-500/40"></div>
 
-    {/* Brand Header & Status Pill */}
+    <!-- Brand Header & Status Pill -->
     <div class="flex items-center justify-between gap-3 mb-6">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
@@ -133,7 +133,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
       </div>
     </div>
 
-    {/* Hero Icon & Title Section */}
+    <!-- Hero Icon & Title Section -->
     <div class="text-center mb-6">
       <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
         <div class="absolute inset-0 rounded-3xl bg-amber-500/15 blur-lg pulse-ring"></div>
@@ -148,7 +148,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
         Tag Temporarily Inactive
       </h1>
       
-      {/* Tag ID chip */}
+      <!-- Tag ID chip -->
       <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-mono text-slate-300 mb-3">
         <span class="text-slate-500">ID:</span>
         <strong class="text-amber-400 font-bold">${publicCode}</strong>
@@ -160,7 +160,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
       </p>
     </div>
 
-    {/* Segmented Tab Buttons (Direct Contact vs Request Activation) */}
+    <!-- Segmented Tab Buttons (Direct Contact vs Request Activation) -->
     <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-900/90 border border-slate-800 mb-5">
       <button
         id="tabBtnContact"
@@ -187,9 +187,9 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
       </button>
     </div>
 
-    {/* TAB CONTENT 1: DIRECT CONTACT */}
+    <!-- TAB CONTENT 1: DIRECT CONTACT -->
     <div id="tabContentContact" class="space-y-3">
-      {/* Call Support Card */}
+      <!-- Call Support Card -->
       <a href="tel:${cleanPhone}" class="group block p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800/80 hover:from-slate-850 hover:to-slate-800 border border-slate-700/60 hover:border-indigo-500/50 transition-all duration-200 shadow-sm">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3.5">
@@ -213,7 +213,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
         </div>
       </a>
 
-      {/* WhatsApp Chat Card */}
+      <!-- WhatsApp Chat Card -->
       <a href="${waUrl}" target="_blank" rel="noreferrer" class="group block p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800/80 hover:from-slate-850 hover:to-slate-800 border border-slate-700/60 hover:border-emerald-500/50 transition-all duration-200 shadow-sm">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3.5">
@@ -235,7 +235,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
       </a>
     </div>
 
-    {/* TAB CONTENT 2: REQUEST RE-ACTIVATION FORM */}
+    <!-- TAB CONTENT 2: REQUEST RE-ACTIVATION FORM -->
     <div id="tabContentRequest" class="hidden">
       <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3.5">
         <div class="text-left">
@@ -302,7 +302,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
       </div>
     </div>
 
-    {/* Footer Info */}
+    <!-- Footer Info -->
     <div class="border-t border-slate-800/80 pt-5 mt-6 text-center space-y-1.5">
       <p class="text-[11px] text-slate-500">
         Tag Owner? <a href="/login" class="text-indigo-400 font-semibold hover:underline">Log in to Tapzy Admin Portal</a> to unpause.
