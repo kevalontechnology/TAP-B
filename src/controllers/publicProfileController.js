@@ -5,6 +5,11 @@ import { ProfileAnalyticsEvent } from '../models/ProfileAnalyticsEvent.js';
 import { VisitorLead } from '../models/VisitorLead.js';
 import { buildVCardString } from './profileController.js';
 import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
+import {
+  renderProfileHtml,
+  renderProfileNotFoundHtml,
+  renderProfileUnavailableHtml,
+} from '../utils/renderProfilePage.js';
 
 /**
  * Generate privacy-preserving visitor identifier from IP + User Agent salt
@@ -97,6 +102,127 @@ export async function getPublicProfileData(req, res, next) {
         publicUrl: `${baseUrl}/${profile.username}`,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /:username or GET /p/:username
+ * Renders complete server-side HTML Digital Business Card for browsers,
+ * or returns JSON for API consumers
+ */
+export async function handlePublicProfileView(req, res, next) {
+  try {
+    const { username } = req.params;
+    if (!username) return next();
+
+    // Check if client explicitly requests JSON (API client or fetch)
+    const acceptsHtml = req.accepts ? req.accepts(['html', 'json']) === 'html' : true;
+    const isApiRequest =
+      req.path.startsWith('/api/') ||
+      (!acceptsHtml && req.headers.accept && req.headers.accept.includes('application/json'));
+
+    const profile = await DigitalProfile.findOne({
+      username: username.toLowerCase(),
+    });
+
+    if (!profile) {
+      if (isApiRequest) {
+        return res.status(404).json({ success: false, error: 'Profile not found' });
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(404).send(renderProfileNotFoundHtml({ username }));
+    }
+
+    if (!profile.isActive) {
+      if (isApiRequest) {
+        return res.status(403).json({ success: false, error: 'This profile is currently inactive' });
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(403).send(renderProfileUnavailableHtml({ username, reason: 'inactive' }));
+    }
+
+    if (!profile.isPublic) {
+      if (isApiRequest) {
+        return res.status(403).json({ success: false, error: 'This profile is currently private' });
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(403).send(renderProfileUnavailableHtml({ username, reason: 'private' }));
+    }
+
+    const baseUrl = await getActiveProfileBaseUrl(req);
+    const publicUrl = `${baseUrl}/${profile.username}`;
+    const vcfUrl = `/p/${profile.username}/vcf`;
+
+    if (isApiRequest) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: profile._id,
+          username: profile.username,
+          fullName: profile.fullName,
+          designation: profile.designation,
+          bio: profile.bio,
+          profilePhoto: profile.profilePhoto,
+          mobileNumber: profile.mobileNumber,
+          whatsappNumber: profile.whatsappNumber,
+          email1: profile.email1,
+          email2: profile.email2,
+          alternatePhone: profile.alternatePhone,
+          companyName: profile.companyName,
+          companyLogo: profile.companyLogo,
+          industry: profile.industry,
+          companyDescription: profile.companyDescription,
+          companyWebsite: profile.companyWebsite,
+          companyAddress: profile.companyAddress,
+          googleMapsLocation: profile.googleMapsLocation,
+          socialLinks: {
+            linkedIn: profile.linkedIn,
+            instagram: profile.instagram,
+            facebook: profile.facebook,
+            youtube: profile.youtube,
+            twitter: profile.twitter,
+            github: profile.github,
+            portfolio: profile.portfolio,
+            googleReview: profile.googleReview,
+            customLinks: profile.customLinks,
+          },
+          services: profile.services,
+          products: profile.products,
+          portfolioItems: profile.portfolioItems,
+          imageGallery: profile.imageGallery,
+          brochureUrl: profile.brochureUrl,
+          themeColor: profile.themeColor || '#034665',
+          saveContactVcf: profile.saveContactVcf,
+          publicUrl,
+        },
+      });
+    }
+
+    // Render Full Ultra-Responsive HTML Digital Profile
+    const profileData = profile.toObject ? profile.toObject() : profile;
+    const html = renderProfileHtml({
+      profile: {
+        ...profileData,
+        socialLinks: {
+          linkedIn: profile.linkedIn,
+          instagram: profile.instagram,
+          facebook: profile.facebook,
+          youtube: profile.youtube,
+          twitter: profile.twitter,
+          github: profile.github,
+          portfolio: profile.portfolio,
+          googleReview: profile.googleReview,
+          customLinks: profile.customLinks,
+        },
+      },
+      publicUrl,
+      vcfUrl,
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(html);
   } catch (err) {
     next(err);
   }

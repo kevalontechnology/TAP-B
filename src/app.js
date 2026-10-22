@@ -19,7 +19,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import adminProfileRoutes from './routes/adminProfileRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import publicProfileRoutes from './routes/publicProfileRoutes.js';
-import { trackLinkAndRedirect, downloadPublicVcf, getPublicProfileData } from './controllers/publicProfileController.js';
+import { trackLinkAndRedirect, downloadPublicVcf, getPublicProfileData, handlePublicProfileView } from './controllers/publicProfileController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,7 +76,7 @@ app.get('/t/link/:profileId/:platform', trackLinkAndRedirect);
 
 // 3. Public Profile & vCard Web Handlers: GET /p/:username & GET /p/:username/vcf
 app.get('/p/:username/vcf', downloadPublicVcf);
-app.get('/p/:username', getPublicProfileData);
+app.get('/p/:username', handlePublicProfileView);
 
 // 4. Protected & Public REST APIs
 app.use('/api', apiLimiter);
@@ -91,6 +91,29 @@ app.use('/api/admin/profiles', adminProfileRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/public', publicProfileRoutes);
+
+// 5. Root-level Public Profile & vCard Handlers (e.g. https://tap-b.onrender.com/:username)
+const RESERVED_PREFIXES = new Set([
+  'api',
+  'q',
+  't',
+  'p',
+  'uploads',
+  'health',
+  'favicon.ico',
+  'robots.txt',
+  'sitemap.xml',
+]);
+
+app.get('/:username/vcf', (req, res, next) => {
+  if (RESERVED_PREFIXES.has(req.params.username.toLowerCase())) return next();
+  return downloadPublicVcf(req, res, next);
+});
+
+app.get('/:username', (req, res, next) => {
+  if (RESERVED_PREFIXES.has(req.params.username.toLowerCase())) return next();
+  return handlePublicProfileView(req, res, next);
+});
 
 // 404 for unhandled API routes
 app.use('/api/*', (req, res) => {
