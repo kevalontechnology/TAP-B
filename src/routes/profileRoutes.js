@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { uploadMedia } from '../middleware/upload.js';
 import {
   listProfiles,
   getProfileById,
@@ -20,7 +21,27 @@ import { getProfileLeads } from '../controllers/leadController.js';
 
 const router = express.Router();
 
-// Profile CRUD (Auth required)
+// File Upload for Profiles (Photos, Logos, Gallery Images, PDF Brochure)
+router.post('/upload', requireAuth, uploadMedia.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: 'No file uploaded' });
+  }
+  const fileUrl = `/uploads/${req.file.filename}`;
+  return res.status(200).json({
+    success: true,
+    message: 'File uploaded successfully',
+    url: fileUrl,
+    filename: req.file.filename,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+  });
+});
+
+// Explicit User Application Routes (/my and /my/:id must be defined BEFORE /:id)
+router.get('/my', requireAuth, listProfiles);
+router.get('/my/:id', requireAuth, getProfileById);
+
+// General Profile CRUD (Auth required)
 router.get('/', requireAuth, listProfiles);
 router.post('/', requireAuth, createProfile);
 router.get('/:id', requireAuth, getProfileById);

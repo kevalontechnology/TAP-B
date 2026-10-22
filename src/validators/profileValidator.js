@@ -19,6 +19,7 @@ const optionalEmail = z
   .default('');
 
 export const createProfileSchema = z.object({
+  userId: z.string().optional(),
   fullName: z.string().min(2, 'Full name must be at least 2 characters').trim(),
   username: z
     .string()

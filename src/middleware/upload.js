@@ -28,10 +28,34 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+const mediaFileFilter = (req, file, cb) => {
+  const allowedMimes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/svg+xml',
+    'image/gif',
+    'application/pdf',
+  ];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only images (JPEG, PNG, WEBP, SVG, GIF) and PDF documents are allowed'), false);
+  }
+};
+
 export const uploadLogo = multer({
   storage,
   limits: {
     fileSize: 2 * 1024 * 1024, // 2MB max
   },
   fileFilter,
+});
+
+export const uploadMedia = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max
+  },
+  fileFilter: mediaFileFilter,
 });

@@ -109,18 +109,24 @@ export async function createProfile(req, res, next) {
       });
     }
 
+    // Determine owner: If admin and userId provided, use target user; otherwise force req.user._id
+    let targetUserId = req.user._id;
+    if (validated.userId && (req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN')) {
+      targetUserId = validated.userId;
+    }
+
     // Check if first profile for this user
-    const userProfileCount = await DigitalProfile.countDocuments({ userId: req.user._id });
+    const userProfileCount = await DigitalProfile.countDocuments({ userId: targetUserId });
     const isDefault = userProfileCount === 0 || validated.isDefault;
 
     if (isDefault && userProfileCount > 0) {
-      await DigitalProfile.updateMany({ userId: req.user._id }, { isDefault: false });
+      await DigitalProfile.updateMany({ userId: targetUserId }, { isDefault: false });
     }
 
     const newProfile = await DigitalProfile.create({
       ...validated,
       username: validated.username.toLowerCase(),
-      userId: req.user._id,
+      userId: targetUserId,
       isDefault,
     });
 

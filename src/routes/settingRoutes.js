@@ -92,30 +92,33 @@ router.put('/base-url', requireAuth, requireRole('SUPER_ADMIN', 'ADMIN'), async 
 });
 
 /**
- * GET /api/settings/profile-base-url
+ * GET /api/settings/profile-base-url & /api/settings/profile-url
  * Get current configured Public Profile Base URL
  */
-router.get('/profile-base-url', async (req, res, next) => {
+const getProfileBaseUrlHandler = async (req, res, next) => {
   try {
     const profileBaseUrl = await getActiveProfileBaseUrl(req);
     return res.status(200).json({
       success: true,
       data: {
         profileBaseUrl,
+        baseUrl: profileBaseUrl,
       },
     });
   } catch (err) {
     next(err);
   }
-});
+};
+router.get('/profile-base-url', getProfileBaseUrlHandler);
+router.get('/profile-url', getProfileBaseUrlHandler);
 
 /**
- * PUT /api/settings/profile-base-url
+ * PUT /api/settings/profile-base-url & /api/settings/profile-url
  * Update Public Profile Base URL (Admin/Super Admin only)
  */
-router.put('/profile-base-url', requireAuth, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res, next) => {
+const updateProfileBaseUrlHandler = async (req, res, next) => {
   try {
-    const { profileBaseUrl } = req.body;
+    const profileBaseUrl = req.body.profileBaseUrl || req.body.baseUrl;
     if (!profileBaseUrl || typeof profileBaseUrl !== 'string' || profileBaseUrl.trim() === '') {
       return res.status(400).json({
         success: false,
@@ -138,11 +141,14 @@ router.put('/profile-base-url', requireAuth, requireRole('SUPER_ADMIN', 'ADMIN')
       message: 'Profile Base URL updated successfully',
       data: {
         profileBaseUrl: updatedUrl,
+        baseUrl: updatedUrl,
       },
     });
   } catch (err) {
     next(err);
   }
-});
+};
+router.put('/profile-base-url', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), updateProfileBaseUrlHandler);
+router.put('/profile-url', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), updateProfileBaseUrlHandler);
 
 export default router;
