@@ -280,6 +280,17 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
             ></textarea>
           </div>
 
+          <!-- Inline Error Notification Box -->
+          <div id="formErrorMsg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs text-left">
+            <div class="flex items-center gap-1.5 font-bold text-rose-400">
+              <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>Submission Issue</span>
+            </div>
+            <p id="formErrorText" class="text-[11px] text-slate-300 mt-1"></p>
+          </div>
+
           <button
             type="submit"
             id="submitBtn"
@@ -336,33 +347,76 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
     document.getElementById('activationForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
+      const errBox = document.getElementById('formErrorMsg');
+      const errText = document.getElementById('formErrorText');
+
+      if (errBox) errBox.classList.add('hidden');
+
       const originalText = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="inline-block animate-spin mr-2">◌</span> Submitting...';
 
       const data = {
-        requesterName: document.getElementById('requesterName').value,
-        contactNumber: document.getElementById('contactNumber').value,
-        message: document.getElementById('message').value,
+        requesterName: (document.getElementById('requesterName').value || '').trim(),
+        contactNumber: (document.getElementById('contactNumber').value || '').trim(),
+        message: (document.getElementById('message').value || '').trim(),
       };
 
+      if (!data.requesterName || !data.contactNumber) {
+        if (errText && errBox) {
+          errText.textContent = 'Please enter both your full name and contact number.';
+          errBox.classList.remove('hidden');
+        } else {
+          alert('Please enter both your full name and contact number.');
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        return;
+      }
+
+      // Safe endpoint resolution matching current host and path
+      const reqUrl = window.location.pathname.replace(/\\/+$/, '') + '/request';
+
       try {
-        const res = await fetch('/q/${publicCode}/request', {
+        const res = await fetch(reqUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify(data),
         });
-        const result = await res.json();
-        if (result.success) {
+
+        let result = {};
+        try {
+          result = await res.json();
+        } catch (jsonErr) {
+          result = { error: 'Server response error (' + res.status + ')' };
+        }
+
+        if (res.ok && result.success) {
           document.getElementById('activationForm').classList.add('hidden');
           document.getElementById('successMsg').classList.remove('hidden');
         } else {
-          alert(result.error || 'Failed to submit request');
+          const failMsg = result.error || result.message || 'Request failed (' + res.status + '). Please try again.';
+          if (errText && errBox) {
+            errText.textContent = failMsg;
+            errBox.classList.remove('hidden');
+          } else {
+            alert(failMsg);
+          }
           btn.disabled = false;
           btn.innerHTML = originalText;
         }
       } catch (err) {
-        alert('Error submitting request. Please try again.');
+        console.error('[Activation Request Network Error]', err);
+        const netMsg = 'Network connection issue. Please check your internet connection and try again.';
+        if (errText && errBox) {
+          errText.textContent = netMsg;
+          errBox.classList.remove('hidden');
+        } else {
+          alert(netMsg);
+        }
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
@@ -538,25 +592,31 @@ export async function handleRedirect(req, res) {
 export async function handleActivationRequest(req, res) {
   try {
     const { publicCode } = req.params;
-    const { requesterName, contactNumber, message } = req.body;
+    const { requesterName, contactNumber, message } = req.body || {};
 
-    if (!requesterName || !contactNumber) {
+    const cleanName = typeof requesterName === 'string' ? requesterName.trim() : '';
+    const cleanNumber = typeof contactNumber === 'string' ? contactNumber.trim() : '';
+    const cleanMessage = typeof message === 'string' ? message.trim() : '';
+
+    if (!cleanName || !cleanNumber) {
       return res.status(400).json({
         success: false,
-        error: 'Name and contact number are required',
+        error: 'Please provide both your name and contact number.',
       });
     }
 
     const qr = await QRCode.findOne({ publicCode });
 
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
+
     const request = await QRRequest.create({
       qrCodeId: qr ? qr._id : null,
       publicCode,
-      requesterName: requesterName.trim(),
-      contactNumber: contactNumber.trim(),
-      message: (message || '').trim(),
+      requesterName: cleanName,
+      contactNumber: cleanNumber,
+      message: cleanMessage,
       status: 'PENDING',
-      ipAddress: req.ip || '',
+      ipAddress: clientIp,
     });
 
     if (qr) {
@@ -564,9 +624,9 @@ export async function handleActivationRequest(req, res) {
         qrCodeId: qr._id,
         action: 'ACTIVATION_REQUESTED',
         newValue: {
-          requesterName,
-          contactNumber,
-          message,
+          requesterName: cleanName,
+          contactNumber: cleanNumber,
+          message: cleanMessage,
         },
       });
     }
@@ -580,7 +640,7 @@ export async function handleActivationRequest(req, res) {
     console.error('[Activation Request Error]', err);
     return res.status(500).json({
       success: false,
-      error: 'Failed to submit activation request',
+      error: 'Failed to submit activation request: ' + (err.message || 'Server error'),
     });
   }
 }

@@ -10,7 +10,7 @@ const qrAuditLogSchema = new mongoose.Schema(
     },
     action: {
       type: String,
-      enum: ['CREATED', 'ASSIGNED', 'DESTINATION_UPDATED', 'STATUS_CHANGED', 'DELETED', 'BULK_GENERATED', 'ACTIVATION_REQUESTED'],
+      enum: ['CREATED', 'ASSIGNED', 'DESTINATION_UPDATED', 'STATUS_CHANGED', 'DELETED', 'BULK_GENERATED', 'ACTIVATION_REQUESTED', 'BASE_URL_UPDATED'],
       required: true,
       index: true,
     },

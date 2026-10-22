@@ -30,5 +30,8 @@ export const redirectLimiter = rateLimit({
   max: 300, // 300 scans per minute per IP
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many requests. Please slow down.',
+  message: {
+    success: false,
+    error: 'Too many requests. Please wait a moment and try again.',
+  },
 });
