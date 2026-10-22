@@ -79,6 +79,7 @@ export async function list(req, res, next) {
         { destinationUrl: searchRegex },
         { 'assignedTo.customerName': searchRegex },
         { 'assignedTo.customerRefId': searchRegex },
+        { 'assignedTo.mobileNumber': searchRegex },
       ];
     }
 

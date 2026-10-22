@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const createQrSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100).trim(),
+  title: z.string().max(100).optional().default(''),
   description: z.string().max(500).optional().default(''),
-  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).default('WEBSITE'),
+  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).optional().default('TAPZY_PROFILE'),
   destinationUrl: z.string().optional().default(''),
   customData: z.any().optional().default(null),
   expiresAt: z.string().datetime().nullable().optional(),
@@ -17,6 +17,7 @@ export const createQrSchema = z.object({
   assignedTo: z
     .object({
       customerName: z.string().optional().default(''),
+      mobileNumber: z.string().optional().default(''),
       customerRefId: z.string().optional().default(''),
       note: z.string().optional().default(''),
     })
@@ -32,15 +33,16 @@ export const bulkQrSchema = z.object({
 
 export const assignQrSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required').trim(),
+  mobileNumber: z.string().optional().default(''),
   customerRefId: z.string().optional().default(''),
-  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).default('WEBSITE'),
+  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).optional().default('TAPZY_PROFILE'),
   destinationUrl: z.string().min(1, 'Destination URL is required').trim(),
   customData: z.any().optional().default(null),
   note: z.string().optional().default(''),
 });
 
 export const updateDestinationSchema = z.object({
-  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).default('WEBSITE'),
+  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).optional().default('TAPZY_PROFILE'),
   destinationUrl: z.string().min(1, 'Destination URL is required').trim(),
   customData: z.any().optional().default(null),
 });

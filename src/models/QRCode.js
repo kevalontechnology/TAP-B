@@ -11,7 +11,7 @@ const qrCodeSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: true,
+      default: '',
       trim: true,
     },
     description: {
@@ -26,7 +26,7 @@ const qrCodeSchema = new mongoose.Schema(
     destinationType: {
       type: String,
       enum: ['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA'],
-      default: 'WEBSITE',
+      default: 'TAPZY_PROFILE',
     },
     destinationUrl: {
       type: String,
@@ -45,6 +45,7 @@ const qrCodeSchema = new mongoose.Schema(
     },
     assignedTo: {
       customerName: { type: String, default: '', trim: true },
+      mobileNumber: { type: String, default: '', trim: true },
       customerRefId: { type: String, default: '', trim: true },
       note: { type: String, default: '', trim: true },
     },

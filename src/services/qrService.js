@@ -32,6 +32,13 @@ export async function createSingleQr(data, user) {
   const publicCode = await getUniquePublicCode();
   const baseUrl = await getActiveBaseUrl();
 
+  const assignedToData = {
+    customerName: (data.assignedTo?.customerName || data.customerName || '').trim(),
+    mobileNumber: (data.assignedTo?.mobileNumber || data.mobileNumber || '').trim(),
+    customerRefId: (data.assignedTo?.customerRefId || data.customerRefId || '').trim(),
+    note: (data.assignedTo?.note || data.note || '').trim(),
+  };
+
   let status = 'UNASSIGNED';
   let destinationUrl = '';
   let assignedAt = null;
@@ -45,22 +52,27 @@ export async function createSingleQr(data, user) {
     }
     destinationUrl = safety.sanitizedUrl;
     status = 'ACTIVE';
-    if (data.assignedTo?.customerName) {
+    if (assignedToData.customerName || assignedToData.mobileNumber) {
       assignedAt = new Date();
     }
   }
 
+  const qrTitle = (
+    data.title?.trim() ||
+    (assignedToData.customerName ? `${assignedToData.customerName}'s Tapzy QR` : `Tapzy QR ${publicCode}`)
+  );
+
   // Store only the code in MongoDB! No hardcoded shortUrl stored.
   const qr = await QRCode.create({
     publicCode,
-    title: data.title,
+    title: qrTitle,
     description: data.description || '',
     shortUrl: '',
-    destinationType: data.destinationType || 'WEBSITE',
+    destinationType: data.destinationType || 'TAPZY_PROFILE',
     destinationUrl,
     customData: data.customData || null,
     status,
-    assignedTo: data.assignedTo || {},
+    assignedTo: assignedToData,
     assignedAt,
     expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
     style: {
@@ -176,16 +188,21 @@ export async function assignQr(qrId, data, user) {
   const oldValue = qr.toJSON();
 
   qr.assignedTo = {
-    customerName: data.customerName,
-    customerRefId: data.customerRefId || '',
-    note: data.note || '',
+    customerName: (data.customerName || '').trim(),
+    mobileNumber: (data.mobileNumber || '').trim(),
+    customerRefId: (data.customerRefId || '').trim(),
+    note: (data.note || '').trim(),
   };
   qr.assignedAt = new Date();
-  qr.destinationType = data.destinationType || 'WEBSITE';
+  qr.destinationType = data.destinationType || 'TAPZY_PROFILE';
   qr.destinationUrl = safety.sanitizedUrl;
   qr.customData = data.customData || null;
   qr.status = 'ACTIVE';
   qr.updatedBy = user?._id || null;
+
+  if (data.customerName && (!qr.title || qr.title.startsWith('Tapzy QR') || qr.title.startsWith('Tapzy Standee'))) {
+    qr.title = `${data.customerName.trim()}'s Tapzy QR`;
+  }
 
   await qr.save();
 
