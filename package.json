@@ -1,0 +1,31 @@
+{
+  "name": "dynamic-qr-backend",
+  "version": "1.0.0",
+  "description": "Dynamic QR Code Management System Backend for Kevalon Technology / Tapzy",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb-memory-server": "^10.1.0",
+    "mongoose": "^8.12.1",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.4",
+    "useragent": "^2.3.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}
