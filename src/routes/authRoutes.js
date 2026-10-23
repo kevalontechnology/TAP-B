@@ -9,12 +9,19 @@ import {
   forgotPassword,
   resetPassword,
   deleteAccount,
+  sendPhoneOtp,
+  verifyPhoneOtp,
 } from '../controllers/authController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
+// Mobile Number + OTP Login / Sign Up
+router.post('/send-otp', authLimiter, sendPhoneOtp);
+router.post('/verify-otp', authLimiter, verifyPhoneOtp);
+
+// Email + Password Auth
 router.post('/login', authLimiter, login);
 router.post('/register', authLimiter, register);
 router.post('/logout', logout);

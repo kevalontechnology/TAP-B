@@ -62,6 +62,21 @@ const digitalProfileSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Profile Classification Type
+    profileType: {
+      type: String,
+      enum: ['PERSONAL', 'BUSINESS', 'EMPLOYEE', 'CUSTOM'],
+      default: 'CUSTOM',
+      index: true,
+    },
+    // Company Code for Organization / Employee linking
+    companyCode: {
+      type: String,
+      default: '',
+      trim: true,
+      uppercase: true,
+      index: true,
+    },
     // Personal Information
     fullName: {
       type: String,

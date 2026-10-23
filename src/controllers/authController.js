@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User } from '../models/User.js';
 import { DigitalProfile } from '../models/DigitalProfile.js';
+import { PhoneOtp } from '../models/PhoneOtp.js';
 import { config } from '../config/env.js';
 import {
   loginSchema,
@@ -269,6 +270,159 @@ export async function deleteAccount(req, res, next) {
     return res.status(200).json({
       success: true,
       message: 'Account and associated profiles have been deactivated successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Helper to normalize phone number to standard 10 digits
+ */
+function normalizePhone(rawPhone = '') {
+  let cleaned = String(rawPhone || '').replace(/[^0-9]/g, '');
+  if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    cleaned = cleaned.slice(2);
+  }
+  if (cleaned.length === 11 && cleaned.startsWith('0')) {
+    cleaned = cleaned.slice(1);
+  }
+  return cleaned;
+}
+
+/**
+ * POST /api/auth/send-otp
+ * Generates and sends OTP to user's mobile number
+ */
+export async function sendPhoneOtp(req, res, next) {
+  try {
+    const { phone } = req.body;
+    const cleanPhone = normalizePhone(phone);
+
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid 10-digit mobile number',
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Upsert PhoneOtp
+    await PhoneOtp.findOneAndUpdate(
+      { phone: cleanPhone },
+      { phone: cleanPhone, otp, expiresAt, attempts: 0 },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // In production, integrate with SMS gateway (Twilio / Fast2SMS / MSG91)
+    console.log(`[SMS Gateway] Sent OTP ${otp} to mobile +91 ${cleanPhone}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `OTP sent successfully to +91 ${cleanPhone}`,
+      phone: cleanPhone,
+      demoOtp: config.env !== 'production' ? otp : undefined,
+      expiresInSeconds: 300,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/auth/verify-otp
+ * Verifies mobile OTP and logs in / signs up the user
+ */
+export async function verifyPhoneOtp(req, res, next) {
+  try {
+    const { phone, otp } = req.body;
+    const cleanPhone = normalizePhone(phone);
+
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid 10-digit mobile number is required',
+      });
+    }
+
+    if (!otp || String(otp).trim().length !== 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid 6-digit OTP',
+      });
+    }
+
+    const trimmedOtp = String(otp).trim();
+
+    // Verify OTP against database or development fallback (123456)
+    const storedOtp = await PhoneOtp.findOne({ phone: cleanPhone });
+    const isDevFallback = config.env !== 'production' && trimmedOtp === '123456';
+    const isMatch = storedOtp && storedOtp.otp === trimmedOtp && storedOtp.expiresAt > new Date();
+
+    if (!isMatch && !isDevFallback) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired OTP. Please request a new OTP.',
+      });
+    }
+
+    // Clear OTP after successful verification
+    if (storedOtp) {
+      await PhoneOtp.deleteOne({ _id: storedOtp._id });
+    }
+
+    // Find user by phone, or email fallback
+    let user = await User.findOne({
+      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@tapzy.in` }],
+    });
+
+    if (!user) {
+      // Auto-register new customer user
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(randomPassword, salt);
+
+      user = await User.create({
+        name: `User ${cleanPhone.slice(-4)}`,
+        email: `${cleanPhone}@tapzy.in`,
+        phone: cleanPhone,
+        passwordHash,
+        role: 'CUSTOMER',
+        isActive: true,
+        lastLogin: new Date(),
+      });
+    } else {
+      if (!user.isActive) {
+        return res.status(403).json({
+          success: false,
+          error: 'Your account has been deactivated. Please contact administrator.',
+        });
+      }
+      user.lastLogin = new Date();
+      if (!user.phone) {
+        user.phone = cleanPhone;
+      }
+      await user.save();
+    }
+
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verified and logged in successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || cleanPhone,
+        avatarUrl: user.avatarUrl || '',
+        role: user.role,
+        lastLogin: user.lastLogin,
+      },
     });
   } catch (err) {
     next(err);

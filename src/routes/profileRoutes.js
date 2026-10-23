@@ -11,6 +11,7 @@ import {
   deleteProfile,
   getProfileQr,
   getProfileVcf,
+  lookupCompanyByCode,
 } from '../controllers/profileController.js';
 import {
   getProfileStatistics,
@@ -40,6 +41,9 @@ router.post('/upload', requireAuth, uploadMedia.single('file'), (req, res) => {
 // Explicit User Application Routes (/my and /my/:id must be defined BEFORE /:id)
 router.get('/my', requireAuth, listProfiles);
 router.get('/my/:id', requireAuth, getProfileById);
+
+// Company Code lookup for Employee profile auto-fill
+router.get('/company-lookup/:code', requireAuth, lookupCompanyByCode);
 
 // General Profile CRUD (Auth required)
 router.get('/', requireAuth, listProfiles);

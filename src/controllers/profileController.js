@@ -471,3 +471,58 @@ export async function getProfileVcf(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * GET /api/profiles/company-lookup/:code
+ * Auto-fetch company details using companyCode, username, or companyName
+ * Used when creating Sales / Employee profiles
+ */
+export async function lookupCompanyByCode(req, res, next) {
+  try {
+    const { code } = req.params;
+    if (!code || !code.trim()) {
+      return res.status(400).json({ success: false, error: 'Company code is required' });
+    }
+
+    const cleanCode = code.trim();
+    const cleanUpper = cleanCode.toUpperCase();
+    const cleanLower = cleanCode.toLowerCase();
+
+    const companyProfile = await DigitalProfile.findOne({
+      $or: [
+        { companyCode: cleanUpper },
+        { username: cleanLower },
+        { companyName: new RegExp(`^${cleanCode}$`, 'i') },
+      ],
+      isActive: true,
+    });
+
+    if (!companyProfile || (!companyProfile.companyName && !companyProfile.companyCode)) {
+      return res.status(404).json({
+        success: false,
+        error: `Company code "${cleanCode}" not found. Please verify with your company admin.`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Company details retrieved successfully',
+      data: {
+        companyCode: companyProfile.companyCode || cleanUpper,
+        companyName: companyProfile.companyName || companyProfile.fullName,
+        companyLogo: companyProfile.companyLogo || '',
+        industry: companyProfile.industry || '',
+        companyDescription: companyProfile.companyDescription || '',
+        companyWebsite: companyProfile.companyWebsite || '',
+        companyAddress: companyProfile.companyAddress || '',
+        googleMapsLocation: companyProfile.googleMapsLocation || '',
+        brochureUrl: companyProfile.brochureUrl || '',
+        themeColor: companyProfile.themeColor || '#034665',
+        services: companyProfile.services || [],
+        products: companyProfile.products || [],
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
