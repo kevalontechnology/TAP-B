@@ -184,6 +184,18 @@ export async function createAdminProfile(req, res, next) {
       });
     }
 
+    // Verify mobile number uniqueness
+    if (validated.mobileNumber && validated.mobileNumber.trim()) {
+      const cleanMobile = validated.mobileNumber.trim();
+      const existingMobile = await DigitalProfile.findOne({ mobileNumber: cleanMobile });
+      if (existingMobile) {
+        return res.status(400).json({
+          success: false,
+          error: `Mobile number "${cleanMobile}" is already registered with profile "${existingMobile.fullName}" (@${existingMobile.username}). Mobile number must be unique.`,
+        });
+      }
+    }
+
     // Determine target owner: Admin-assigned or fallback to admin self
     let targetUserId = req.user._id;
     if (validated.userId) {
@@ -267,6 +279,23 @@ export async function updateAdminProfile(req, res, next) {
         });
       }
       profile.username = normalizedUsername;
+    }
+
+    // Mobile number uniqueness check
+    if (validated.mobileNumber !== undefined && validated.mobileNumber.trim()) {
+      const cleanMobile = validated.mobileNumber.trim();
+      if (cleanMobile !== profile.mobileNumber) {
+        const existingMobile = await DigitalProfile.findOne({
+          mobileNumber: cleanMobile,
+          _id: { $ne: profile._id },
+        });
+        if (existingMobile) {
+          return res.status(400).json({
+            success: false,
+            error: `Mobile number "${cleanMobile}" is already registered with another profile (${existingMobile.fullName}). Mobile number must be unique.`,
+          });
+        }
+      }
     }
 
     // Owner reassignment if requested

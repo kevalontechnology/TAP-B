@@ -243,5 +243,12 @@ const digitalProfileSchema = new mongoose.Schema(
 
 digitalProfileSchema.index({ userId: 1, createdAt: -1 });
 digitalProfileSchema.index({ isActive: 1, isPublic: 1 });
+digitalProfileSchema.index(
+  { mobileNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { mobileNumber: { $gt: '' } },
+  }
+);
 
 export const DigitalProfile = mongoose.model('DigitalProfile', digitalProfileSchema);

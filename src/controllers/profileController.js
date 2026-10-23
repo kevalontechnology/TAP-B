@@ -109,6 +109,18 @@ export async function createProfile(req, res, next) {
       });
     }
 
+    // Verify mobile number uniqueness (same mobile number cannot be registered twice)
+    if (validated.mobileNumber && validated.mobileNumber.trim()) {
+      const cleanMobile = validated.mobileNumber.trim();
+      const existingMobile = await DigitalProfile.findOne({ mobileNumber: cleanMobile });
+      if (existingMobile) {
+        return res.status(400).json({
+          success: false,
+          error: `Mobile number "${cleanMobile}" is already registered with profile "${existingMobile.fullName}" (@${existingMobile.username}). Mobile number must be unique.`,
+        });
+      }
+    }
+
     // Determine owner: If admin and userId provided, use target user; otherwise force req.user._id
     let targetUserId = req.user._id;
     if (validated.userId && (req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN')) {
@@ -182,6 +194,23 @@ export async function updateProfile(req, res, next) {
         });
       }
       profile.username = validated.username.toLowerCase();
+    }
+
+    // Verify mobile number uniqueness
+    if (validated.mobileNumber !== undefined && validated.mobileNumber.trim()) {
+      const cleanMobile = validated.mobileNumber.trim();
+      if (cleanMobile !== profile.mobileNumber) {
+        const existingMobile = await DigitalProfile.findOne({
+          mobileNumber: cleanMobile,
+          _id: { $ne: profile._id },
+        });
+        if (existingMobile) {
+          return res.status(400).json({
+            success: false,
+            error: `Mobile number "${cleanMobile}" is already registered with another profile (${existingMobile.fullName}). Mobile number must be unique.`,
+          });
+        }
+      }
     }
 
     // If setting as default, unset others

@@ -403,6 +403,28 @@ export async function submitContactLead(req, res, next) {
     const ua = useragent.parse(req.headers['user-agent'] || '');
     const deviceCategory = getDeviceCategory(req.headers['user-agent']);
 
+    // Prevent duplicate lead entries for the exact same mobile number
+    if (phoneNumber && phoneNumber.trim()) {
+      const cleanPhone = phoneNumber.trim();
+      const existingLead = await VisitorLead.findOne({
+        profileId: profile._id,
+        phoneNumber: cleanPhone,
+      });
+      if (existingLead) {
+        existingLead.fullName = fullName.trim();
+        if (email) existingLead.email = email.trim().toLowerCase();
+        if (message) existingLead.message = message.trim();
+        existingLead.updatedAt = new Date();
+        await existingLead.save();
+
+        return res.status(200).json({
+          success: true,
+          message: 'Contact inquiry updated successfully',
+          data: { leadId: existingLead._id },
+        });
+      }
+    }
+
     const lead = await VisitorLead.create({
       profileId: profile._id,
       ownerId: profile.userId,

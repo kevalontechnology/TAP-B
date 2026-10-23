@@ -575,35 +575,9 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
         </div>
       </div>
 
-      <!-- 12. Connect / Lead Capture Modal / Box (Collapsible) -->
-      <div class="rounded-2xl bg-[#0f1420] border border-slate-800/80 p-4 space-y-3 shadow-lg">
-        <div class="text-center space-y-0.5">
-          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Exchange Contact</h3>
-          <p class="text-[10px] text-slate-400">Send your details directly to ${name}</p>
-        </div>
-
-        <div id="lead-success-box" class="hidden p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-center space-y-1">
-          <div class="text-xs font-bold">Contact Sent Successfully!</div>
-          <p class="text-[10px] text-emerald-300">Your information has been shared with ${name}.</p>
-        </div>
-
-        <form id="lead-form" class="space-y-2">
-          <div id="lead-error-box" class="hidden p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[11px]"></div>
-          
-          <input type="text" id="lead-name" placeholder="Your Full Name *" required class="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-[#0a0e17] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400" />
-          <input type="tel" id="lead-phone" placeholder="Your Mobile Number *" required class="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-[#0a0e17] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400" />
-          <input type="email" id="lead-email" placeholder="Your Email Address" class="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-[#0a0e17] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400" />
-          <textarea id="lead-message" rows="2" placeholder="Message or inquiry..." class="w-full text-xs p-2.5 rounded-xl border border-slate-800 bg-[#0a0e17] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"></textarea>
-
-          <button type="submit" id="lead-submit-btn" class="w-full py-2.5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 to-[#00a8cc] hover:opacity-95 active:scale-98 transition-all cursor-pointer shadow-md">
-            Send My Contact
-          </button>
-        </form>
-      </div>
-
     </div>
 
-    <!-- 13. Footer Branding & App Badges -->
+    <!-- 12. Footer Branding & App Badges -->
     <div class="pt-6 pb-2 text-center space-y-4">
       <!-- Tapzy Logo with Gradient -->
       <div class="flex items-center justify-center gap-1.5">
@@ -709,62 +683,6 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
         });
       }
 
-      // 3. Contact Lead Submission
-      const form = document.getElementById('lead-form');
-      const submitBtn = document.getElementById('lead-submit-btn');
-      const successBox = document.getElementById('lead-success-box');
-      const errorBox = document.getElementById('lead-error-box');
-
-      if (form) {
-        form.addEventListener('submit', async function(e) {
-          e.preventDefault();
-          const fullName = document.getElementById('lead-name').value.trim();
-          const phoneNumber = document.getElementById('lead-phone').value.trim();
-          const email = document.getElementById('lead-email').value.trim();
-          const message = document.getElementById('lead-message').value.trim();
-
-          if (!fullName || !phoneNumber) {
-            errorBox.innerText = 'Name and mobile number are required.';
-            errorBox.classList.remove('hidden');
-            return;
-          }
-
-          errorBox.classList.add('hidden');
-          submitBtn.disabled = true;
-          submitBtn.innerText = 'Sending...';
-
-          try {
-            const res = await fetch('/api/public/profile/' + username + '/connect', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                fullName,
-                phoneNumber,
-                email,
-                message,
-                consentGiven: true,
-                source: 'public_profile'
-              })
-            });
-
-            const data = await res.json();
-            if (res.ok && data.success) {
-              form.classList.add('hidden');
-              successBox.classList.remove('hidden');
-            } else {
-              errorBox.innerText = data.error || 'Failed to exchange contact. Please try again.';
-              errorBox.classList.remove('hidden');
-              submitBtn.disabled = false;
-              submitBtn.innerText = 'Send My Contact';
-            }
-          } catch (err) {
-            errorBox.innerText = 'Network error. Please try again.';
-            errorBox.classList.remove('hidden');
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'Send My Contact';
-          }
-        });
-      }
     })();
   </script>
 
