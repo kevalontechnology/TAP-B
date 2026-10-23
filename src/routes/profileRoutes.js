@@ -32,11 +32,15 @@ router.post('/upload', requireAuth, uploadMedia.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'No file uploaded' });
   }
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const fullUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
   const fileUrl = `/uploads/${req.file.filename}`;
   return res.status(200).json({
     success: true,
     message: 'File uploaded successfully',
-    url: fileUrl,
+    url: fullUrl,
+    relativeUrl: fileUrl,
     filename: req.file.filename,
     mimetype: req.file.mimetype,
     size: req.file.size,

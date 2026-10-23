@@ -49,19 +49,76 @@ function getCleanPhone(phone = '') {
 }
 
 /**
+ * Generates dynamic color palette, glowing gradients, rgba tints, and contrast text based on user-selected theme color
+ */
+export function getThemePalette(color) {
+  const fallback = '#034665';
+  let hex =
+    color && typeof color === 'string' && /^#([0-9A-F]{3}){1,2}$/i.test(color.trim())
+      ? color.trim()
+      : fallback;
+
+  if (hex.length === 4) {
+    hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+  }
+
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+
+  const rgba = (alpha) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  const isLight = luminance > 0.55;
+  const buttonText = isLight ? '#06080d' : '#ffffff';
+
+  const lighten = (factor = 0.35) => {
+    const nr = Math.min(255, Math.round(r + (255 - r) * factor));
+    const ng = Math.min(255, Math.round(g + (255 - g) * factor));
+    const nb = Math.min(255, Math.round(b + (255 - b) * factor));
+    return `#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb.toString(16).padStart(2, '0')}`;
+  };
+
+  const primaryLight = lighten(0.35);
+
+  return {
+    primary: hex,
+    primaryLight,
+    rgba,
+    isLight,
+    buttonText,
+    gradient: `linear-gradient(135deg, ${hex}, ${primaryLight})`,
+    glowShadow: `0 10px 25px -5px ${rgba(0.45)}`,
+  };
+}
+
+function resolveMedia(url) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed;
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+/**
  * Render the Complete Ultra-Premium Tapzy Digital Business Card HTML
- * Matches user's exact uploaded design with dark obsidian background and cyan accents
+ * Matches user's exact uploaded design with dynamic theme color selected by the user
  */
 export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
-  const themeColor = profile.themeColor || '#034665';
-  const accentCyan = '#00c2cb';
+  const theme = getThemePalette(profile.themeColor);
   const name = sanitizeHtml(profile.fullName || profile.username);
   const designation = sanitizeHtml(profile.designation || '');
   const companyName = sanitizeHtml(profile.companyName || '');
-  const companyLogo = profile.companyLogo ? profile.companyLogo.trim() : '';
+  const companyLogo = resolveMedia(profile.companyLogo);
   const industry = sanitizeHtml(profile.industry || '');
   const bio = sanitizeHtml(profile.bio || '');
-  const photo = profile.profilePhoto ? profile.profilePhoto.trim() : '';
+  const photo = resolveMedia(profile.profilePhoto);
   const initials = (name.charAt(0) || 'T').toUpperCase();
 
   // Contact Details
@@ -199,17 +256,26 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
   <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
+    :root {
+      --theme-primary: ${theme.primary};
+      --theme-glow: ${theme.rgba(0.4)};
+      --theme-btn-text: ${theme.buttonText};
+    }
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       background-color: #06080d;
     }
+    ::selection {
+      background-color: ${theme.primary};
+      color: ${theme.buttonText};
+    }
     .custom-scrollbar::-webkit-scrollbar { display: none; }
     .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen flex justify-center selection:bg-cyan-500 selection:text-black pb-28">
+<body class="text-slate-100 min-h-screen flex justify-center pb-28">
   
   <!-- Mobile Container (Max Width 420px) -->
   <div class="w-full max-w-[420px] min-h-screen relative flex flex-col justify-between px-4 pt-4 pb-6 space-y-4">
@@ -217,13 +283,13 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
     <div class="space-y-4">
       
       <!-- 1. Top Profile Portrait Card -->
-      <div class="relative w-full rounded-[28px] overflow-hidden bg-[#0d121d] border border-white/10 shadow-2xl">
+      <div class="relative w-full rounded-[28px] overflow-hidden bg-[#0d121d] border shadow-2xl" style="border-color: ${theme.rgba(0.2)};">
         <div class="relative w-full aspect-[4/4.8] overflow-hidden bg-[#0a0e17] flex items-center justify-center">
           ${
             photo
               ? `<img src="${photo}" alt="${name}" class="w-full h-full object-cover object-top" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                 <div class="w-full h-full hidden items-center justify-center text-white text-6xl font-black bg-gradient-to-br from-[#034665] to-[#0088cc]">${initials}</div>`
-              : `<div class="w-full h-full flex items-center justify-center text-white text-6xl font-black bg-gradient-to-br from-[#034665] to-[#0088cc]">${initials}</div>`
+                 <div class="w-full h-full hidden items-center justify-center text-6xl font-black" style="background: ${theme.gradient}; color: ${theme.buttonText};">${initials}</div>`
+              : `<div class="w-full h-full flex items-center justify-center text-6xl font-black" style="background: ${theme.gradient}; color: ${theme.buttonText};">${initials}</div>`
           }
 
           <!-- Floating Company Logo Badge (Top Right) -->
@@ -242,7 +308,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
             </h1>
             ${
               designation
-                ? `<p class="text-[11px] font-bold tracking-wider uppercase text-cyan-400 drop-shadow-sm font-sans">
+                ? `<p class="text-[11px] font-bold tracking-wider uppercase drop-shadow-sm font-sans" style="color: ${theme.primary};">
                      ${designation}
                    </p>`
                 : ''
@@ -305,7 +371,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       ${
         hasSocial
           ? `<div class="space-y-2.5 pt-1">
-               <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-cyan-400">
+               <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider" style="color: ${theme.primary};">
                  <span class="text-sm font-black">#</span>
                  <span>CONNECT</span>
                </div>
@@ -313,7 +379,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                <div class="grid grid-cols-4 gap-2 text-xs">
                  ${
                    whatsapp || mobile
-                     ? `<a href="https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Hi ${name}, I connected with you via your Tapzy profile.`)}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="WhatsApp">
+                     ? `<a href="https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Hi ${name}, I connected with you via your Tapzy profile.`)}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="WhatsApp">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.whatsapp}
                           </div>
@@ -323,7 +389,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.instagram
-                     ? `<a href="${social.instagram}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="Instagram">
+                     ? `<a href="${social.instagram}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="Instagram">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.instagram}
                           </div>
@@ -333,7 +399,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.facebook
-                     ? `<a href="${social.facebook}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="Facebook">
+                     ? `<a href="${social.facebook}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="Facebook">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.facebook}
                           </div>
@@ -343,7 +409,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.linkedIn
-                     ? `<a href="${social.linkedIn}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="LinkedIn">
+                     ? `<a href="${social.linkedIn}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="LinkedIn">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.linkedin}
                           </div>
@@ -353,7 +419,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.twitter
-                     ? `<a href="${social.twitter}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="X (Twitter)">
+                     ? `<a href="${social.twitter}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="X (Twitter)">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.twitter}
                           </div>
@@ -363,15 +429,15 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.googleReview
-                     ? `<a href="${social.googleReview}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="Google Review">
-                          <span class="font-black text-lg">G</span>
+                     ? `<a href="${social.googleReview}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="Google Review">
+                          <span class="font-black text-lg" style="color: ${theme.primary};">G</span>
                         </a>`
                      : ''
                  }
 
                  ${
                    social.youtube
-                     ? `<a href="${social.youtube}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="YouTube">
+                     ? `<a href="${social.youtube}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="YouTube">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.youtube}
                           </div>
@@ -381,7 +447,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.github
-                     ? `<a href="${social.github}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="GitHub">
+                     ? `<a href="${social.github}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="GitHub">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.github}
                           </div>
@@ -391,7 +457,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
                  ${
                    social.portfolio
-                     ? `<a href="${social.portfolio}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" title="Portfolio">
+                     ? `<a href="${social.portfolio}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="Portfolio">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.globe}
                           </div>
@@ -404,7 +470,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                      ? social.customLinks
                          .map(
                            (c) =>
-                             `<a href="${c.url}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-cyan-400 flex flex-col items-center justify-center text-white active:scale-95 transition-all shadow-md group p-1" title="${sanitizeHtml(c.label)}">
+                             `<a href="${c.url}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex flex-col items-center justify-center text-white active:scale-95 transition-all shadow-md group p-1" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="${sanitizeHtml(c.label)}">
                                 ${ICONS.externalLink}
                                 <span class="text-[8px] font-bold truncate max-w-full mt-0.5">${sanitizeHtml(c.label)}</span>
                               </a>`
@@ -421,8 +487,8 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       ${
         hasReachMe
           ? `<div class="space-y-2.5 pt-1">
-               <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-cyan-400">
-                 <span class="w-2.5 h-2.5 rounded-sm bg-cyan-400/20 border border-cyan-400 inline-block"></span>
+               <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider" style="color: ${theme.primary};">
+                 <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background-color: ${theme.rgba(0.2)}; border: 1px solid ${theme.primary};"></span>
                  <span>REACH ME</span>
                </div>
 
@@ -438,7 +504,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                      ${reachMeItems
                        .map(
                          (item) => `
-                         <a href="${item.link}" ${item.isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''} class="text-xs font-semibold text-slate-200 hover:text-cyan-400 transition-colors break-words leading-tight">
+                         <a href="${item.link}" ${item.isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''} class="text-xs font-semibold text-slate-200 transition-colors break-words leading-tight" onmouseenter="this.style.color='${theme.primary}';" onmouseleave="this.style.color='rgb(226 232 240)';">
                            ${item.text}
                          </a>`
                        )
@@ -462,7 +528,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                      <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
                        <div class="flex items-center justify-between">
                          <h4 class="font-bold text-white text-xs">${sanitizeHtml(srv.title)}</h4>
-                         ${srv.price ? `<span class="text-xs font-bold text-cyan-400">${sanitizeHtml(srv.price)}</span>` : ''}
+                         ${srv.price ? `<span class="text-xs font-bold" style="color: ${theme.primary};">${sanitizeHtml(srv.price)}</span>` : ''}
                        </div>
                        ${srv.description ? `<p class="text-[11px] text-slate-400 leading-relaxed">${sanitizeHtml(srv.description)}</p>` : ''}
                      </div>`
@@ -483,10 +549,10 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                    .map(
                      (prd) => `
                      <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
-                       ${prd.image ? `<div class="aspect-square rounded-lg bg-black/40 overflow-hidden border border-slate-800"><img src="${prd.image}" alt="${sanitizeHtml(prd.name)}" class="w-full h-full object-cover" /></div>` : ''}
+                       ${prd.image ? `<div class="aspect-square rounded-lg bg-black/40 overflow-hidden border border-slate-800"><img src="${resolveMedia(prd.image)}" alt="${sanitizeHtml(prd.name)}" class="w-full h-full object-cover" /></div>` : ''}
                        <h4 class="font-bold text-white text-xs truncate">${sanitizeHtml(prd.name)}</h4>
-                       ${prd.price ? `<p class="text-xs font-bold text-cyan-400">${sanitizeHtml(prd.price)}</p>` : ''}
-                       ${prd.link ? `<a href="${prd.link}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:underline"><span>View</span>${ICONS.externalLink}</a>` : ''}
+                       ${prd.price ? `<p class="text-xs font-bold" style="color: ${theme.primary};">${sanitizeHtml(prd.price)}</p>` : ''}
+                       ${prd.link ? `<a href="${prd.link}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style="color: ${theme.primary};"><span>View</span>${ICONS.externalLink}</a>` : ''}
                      </div>`
                    )
                    .join('')}
@@ -505,10 +571,10 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                    .map(
                      (port) => `
                      <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
-                       ${port.image ? `<div class="h-28 rounded-lg bg-black/40 overflow-hidden border border-slate-800"><img src="${port.image}" alt="${sanitizeHtml(port.title)}" class="w-full h-full object-cover" /></div>` : ''}
+                       ${port.image ? `<div class="h-28 rounded-lg bg-black/40 overflow-hidden border border-slate-800"><img src="${resolveMedia(port.image)}" alt="${sanitizeHtml(port.title)}" class="w-full h-full object-cover" /></div>` : ''}
                        <div class="flex items-center justify-between">
                          <h4 class="font-bold text-white text-xs">${sanitizeHtml(port.title)}</h4>
-                         ${port.link ? `<a href="${port.link}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-cyan-400 hover:underline flex items-center gap-1"><span>View</span>${ICONS.externalLink}</a>` : ''}
+                         ${port.link ? `<a href="${port.link}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold hover:underline flex items-center gap-1" style="color: ${theme.primary};"><span>View</span>${ICONS.externalLink}</a>` : ''}
                        </div>
                        ${port.description ? `<p class="text-[11px] text-slate-400">${sanitizeHtml(port.description)}</p>` : ''}
                      </div>`
@@ -529,7 +595,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                    .map(
                      (img) => `
                      <div class="aspect-square rounded-xl bg-black/40 overflow-hidden border border-slate-800">
-                       <img src="${img.url}" alt="${sanitizeHtml(img.caption || 'Gallery')}" class="w-full h-full object-cover hover:scale-105 transition-transform" />
+                       <img src="${resolveMedia(img.url)}" alt="${sanitizeHtml(img.caption || 'Gallery')}" class="w-full h-full object-cover hover:scale-105 transition-transform" />
                      </div>`
                    )
                    .join('')}
@@ -542,15 +608,15 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       ${
         hasBrochure
           ? `<div class="rounded-2xl bg-[#0f1420] border border-slate-800/80 p-4 shadow-lg">
-               <a href="${profile.brochureUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between text-white group">
+               <a href="${resolveMedia(profile.brochureUrl)}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between text-white group">
                  <div class="flex items-center gap-3">
-                   ${ICONS.fileText}
+                   <div style="color: ${theme.primary};">${ICONS.fileText}</div>
                    <div>
-                     <h4 class="font-bold text-xs group-hover:text-cyan-400 transition-colors">Download Company Brochure</h4>
+                     <h4 class="font-bold text-xs transition-colors" style="color: ${theme.primary};">Download Company Brochure</h4>
                      <p class="text-[10px] text-slate-400">Official PDF specifications</p>
                    </div>
                  </div>
-                 <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                 <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform" style="background-color: ${theme.rgba(0.12)}; border: 1px solid ${theme.rgba(0.25)}; color: ${theme.primary};">
                    ${ICONS.download}
                  </div>
                </a>
@@ -562,7 +628,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       <div class="rounded-2xl bg-[#0f1420] border border-slate-800/80 overflow-hidden shadow-lg">
         <button type="button" onclick="document.getElementById('payment-accordion-body').classList.toggle('hidden');" class="w-full p-4 flex items-center justify-between text-left cursor-pointer hover:bg-white/5 transition-colors">
           <div class="flex items-center gap-2.5">
-            <span class="w-7 h-7 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center" style="background-color: ${theme.rgba(0.15)}; border: 1px solid ${theme.rgba(0.3)}; color: ${theme.primary};">
               ${ICONS.creditCard}
             </span>
             <span class="text-xs font-bold text-white">Payment Options</span>
@@ -571,7 +637,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
         </button>
         <div id="payment-accordion-body" class="hidden p-4 pt-1 border-t border-slate-800/80 text-xs text-slate-300 space-y-2">
           <p class="text-[11px] text-slate-400">UPI & Direct Bank Transfer available upon inquiry.</p>
-          ${mobile ? `<p class="font-mono text-cyan-400 text-xs">UPI: ${mobile}@upi</p>` : ''}
+          ${mobile ? `<p class="font-mono text-xs" style="color: ${theme.primary};">UPI: ${mobile}@upi</p>` : ''}
         </div>
       </div>
 
@@ -582,8 +648,8 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       <!-- Tapzy Logo with Gradient -->
       <div class="flex items-center justify-center gap-1.5">
         <a href="https://tapzy.in" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-base font-black tracking-wide">
-          <span class="text-cyan-400 font-extrabold text-lg">⚡</span>
-          <span class="text-white">Tapzy</span><span class="text-[10px] text-cyan-400 -mt-2">®</span>
+          <span class="font-extrabold text-lg" style="color: ${theme.primary};">⚡</span>
+          <span class="text-white">Tapzy</span><span class="text-[10px] -mt-2" style="color: ${theme.primary};">®</span>
         </a>
       </div>
 
@@ -613,8 +679,8 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
   <!-- 14. Fixed Floating Action Bar (Bottom of Screen) -->
   <div class="fixed bottom-0 inset-x-0 max-w-[420px] mx-auto p-3.5 bg-[#06080d]/90 backdrop-blur-xl border-t border-slate-800/80 flex items-center gap-3 z-50">
-    <!-- Save Contact Button (Cyan Accent Gradient) -->
-    <a href="${vcfUrl}" download class="flex-1 py-3 px-4 rounded-full font-black text-xs text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all cursor-pointer" style="background: linear-gradient(135deg, ${accentCyan}, #00b4d8);">
+    <!-- Save Contact Button (Dynamic Theme Gradient) -->
+    <a href="${vcfUrl}" download class="flex-1 py-3 px-4 rounded-full font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer" style="background: ${theme.gradient}; color: ${theme.buttonText}; box-shadow: ${theme.glowShadow};">
       ${ICONS.download}
       <span>Save Contact</span>
     </a>
@@ -627,7 +693,9 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
   </div>
 
   <!-- Toast Notification Container -->
-  <div id="toast-notify" class="fixed top-5 inset-x-0 max-w-xs mx-auto px-4 py-2.5 rounded-2xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-2xl text-center transition-all opacity-0 pointer-events-none transform -translate-y-4 z-50">
+  <div id="toast-notify" class="fixed top-5 inset-x-0 max-w-xs mx-auto px-4 py-2.5 rounded-2xl font-bold text-xs shadow-2xl text-center transition-all opacity-0 pointer-events-none transform -translate-y-4 z-50" style="background-color: ${theme.primary}; color: ${theme.buttonText};">
+    Link copied to clipboard!
+  </div>
     Link copied to clipboard!
   </div>
 
