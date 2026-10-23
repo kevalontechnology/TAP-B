@@ -235,6 +235,36 @@ const digitalProfileSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Card & NFC Integration
+    cardLinked: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    cardLinkedAt: {
+      type: Date,
+      default: null,
+    },
+    cardNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    cardNickname: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    nfcUid: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    linkedQrCode: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,

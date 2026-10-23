@@ -2,6 +2,7 @@ import QRCodeLib from 'qrcode';
 import { DigitalProfile } from '../models/DigitalProfile.js';
 import { ProfileAnalyticsEvent } from '../models/ProfileAnalyticsEvent.js';
 import { VisitorLead } from '../models/VisitorLead.js';
+import { QRCode } from '../models/QRCode.js';
 import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
 import { createProfileSchema, updateProfileSchema } from '../validators/profileValidator.js';
 
@@ -135,11 +136,21 @@ export async function createProfile(req, res, next) {
       await DigitalProfile.updateMany({ userId: targetUserId }, { isDefault: false });
     }
 
+    // By default, customer profiles are Inactive (false) unless card is linked or explicitly activated
+    const initialActive =
+      validated.isActive !== undefined
+        ? validated.isActive
+        : req.user.role === 'CUSTOMER'
+        ? false
+        : true;
+
     const newProfile = await DigitalProfile.create({
       ...validated,
       username: validated.username.toLowerCase(),
       userId: targetUserId,
       isDefault,
+      isActive: initialActive,
+      cardLinked: Boolean(validated.cardLinked),
     });
 
     const formatted = await formatProfile(newProfile, req);
@@ -549,6 +560,208 @@ export async function lookupCompanyByCode(req, res, next) {
         themeColor: companyProfile.themeColor || '#034665',
         services: companyProfile.services || [],
         products: companyProfile.products || [],
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/profiles/my-cards
+ * Retrieve all cards for authenticated user
+ */
+export async function getMyCards(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const profiles = await DigitalProfile.find({ userId }).sort({ isDefault: -1, createdAt: -1 });
+    const formatted = await Promise.all(profiles.map((p) => formatProfile(p, req)));
+
+    return res.status(200).json({
+      success: true,
+      data: formatted,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/profiles/:id/add-card
+ * Add/link card to profile. Activates the profile immediately.
+ */
+export async function addCardToProfile(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { cardNickname, cardNumber, nfcUid, linkedQrCode } = req.body;
+
+    const profile = await DigitalProfile.findById(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    if (
+      profile.userId.toString() !== req.user._id.toString() &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'ADMIN'
+    ) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const genCardNumber =
+      cardNumber ||
+      `TPZ-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    profile.cardLinked = true;
+    profile.isActive = true; // Activating profile when card is added!
+    profile.cardLinkedAt = new Date();
+    profile.cardNumber = genCardNumber;
+    if (cardNickname) profile.cardNickname = cardNickname.trim();
+    if (nfcUid) profile.nfcUid = nfcUid.trim();
+    if (linkedQrCode) profile.linkedQrCode = linkedQrCode.trim();
+
+    await profile.save();
+    const formatted = await formatProfile(profile, req);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Card added successfully! Your profile is now Active.',
+      data: formatted,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/profiles/:id/toggle-card
+ * Disable or Enable the card
+ */
+export async function toggleCardStatus(req, res, next) {
+  try {
+    const { id } = req.params;
+    const profile = await DigitalProfile.findById(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    if (
+      profile.userId.toString() !== req.user._id.toString() &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'ADMIN'
+    ) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    profile.isActive = !profile.isActive;
+    await profile.save();
+    const formatted = await formatProfile(profile, req);
+
+    return res.status(200).json({
+      success: true,
+      message: `Card is now ${profile.isActive ? 'Active' : 'Disabled'}`,
+      data: formatted,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/profiles/:id/link-qr
+ * Link a Smart Dynamic QR Code to this card
+ */
+export async function linkQrToCard(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { publicCode } = req.body;
+
+    const profile = await DigitalProfile.findById(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    if (
+      profile.userId.toString() !== req.user._id.toString() &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'ADMIN'
+    ) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const baseUrl = await getActiveProfileBaseUrl(req);
+    const profileUrl = `${baseUrl}/${profile.username}`;
+
+    if (publicCode && publicCode.trim()) {
+      const cleanCode = publicCode.trim();
+      const qr = await QRCode.findOne({ publicCode: cleanCode });
+      if (qr) {
+        qr.destinationType = 'TAPZY_PROFILE';
+        qr.destinationUrl = profileUrl;
+        qr.status = 'ACTIVE';
+        qr.assignedTo = {
+          customerName: profile.fullName,
+          mobileNumber: profile.mobileNumber,
+          customerRefId: String(profile.userId),
+          note: `Linked to Tapzy Profile: @${profile.username}`,
+        };
+        qr.assignedAt = new Date();
+        await qr.save();
+      }
+      profile.linkedQrCode = cleanCode;
+    } else {
+      profile.linkedQrCode = profile.username;
+    }
+
+    await profile.save();
+    const formatted = await formatProfile(profile, req);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Smart QR Code linked to card successfully',
+      data: formatted,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/profiles/:id/nfc
+ * Retrieve NFC Configuration and write instructions for the card
+ */
+export async function getNfcPayload(req, res, next) {
+  try {
+    const { id } = req.params;
+    const profile = await DigitalProfile.findById(id);
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    const baseUrl = await getActiveProfileBaseUrl(req);
+    const publicUrl = `${baseUrl}/${profile.username}`;
+    const vcfUrl = `${baseUrl}/api/public/profile/${profile.username}/vcf`;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        profileId: profile._id,
+        username: profile.username,
+        fullName: profile.fullName,
+        cardNumber: profile.cardNumber || `TPZ-${profile.username.toUpperCase()}`,
+        cardNickname: profile.cardNickname || `${profile.fullName}'s Card`,
+        nfcPayloadUrl: publicUrl,
+        vcfDownloadUrl: vcfUrl,
+        ndefUriRecord: publicUrl,
+        isActive: profile.isActive,
+        writeInstructions: [
+          'Install the free "NFC Tools" app from Google Play Store or Apple App Store.',
+          'Open NFC Tools and tap on the "Write" tab.',
+          'Tap "Add a record" and choose "Custom URL / URI".',
+          'Paste your Tapzy Card URL into the URI field.',
+          'Tap "Write" and touch your physical NFC PVC Card to the back of your smartphone.',
+          'Success! Your Tapzy Digital Business Card is now permanently active and ready for instant contactless sharing.',
+        ],
       },
     });
   } catch (err) {

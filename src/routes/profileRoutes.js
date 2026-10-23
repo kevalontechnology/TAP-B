@@ -12,6 +12,11 @@ import {
   getProfileQr,
   getProfileVcf,
   lookupCompanyByCode,
+  getMyCards,
+  addCardToProfile,
+  toggleCardStatus,
+  linkQrToCard,
+  getNfcPayload,
 } from '../controllers/profileController.js';
 import {
   getProfileStatistics,
@@ -38,9 +43,16 @@ router.post('/upload', requireAuth, uploadMedia.single('file'), (req, res) => {
   });
 });
 
-// Explicit User Application Routes (/my and /my/:id must be defined BEFORE /:id)
+// Explicit User Application Routes (/my, /my/:id, and /my-cards must be defined BEFORE /:id)
 router.get('/my', requireAuth, listProfiles);
+router.get('/my-cards', requireAuth, getMyCards);
 router.get('/my/:id', requireAuth, getProfileById);
+
+// Card Actions (Add Card, Toggle Status, Link QR, NFC Payload)
+router.post('/:id/add-card', requireAuth, addCardToProfile);
+router.patch('/:id/toggle-card', requireAuth, toggleCardStatus);
+router.post('/:id/link-qr', requireAuth, linkQrToCard);
+router.get('/:id/nfc', requireAuth, getNfcPayload);
 
 // Company Code lookup for Employee profile auto-fill
 router.get('/company-lookup/:code', requireAuth, lookupCompanyByCode);
