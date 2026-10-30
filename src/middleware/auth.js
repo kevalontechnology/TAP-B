@@ -28,7 +28,7 @@ export async function requireAuth(req, res, next) {
     if (!token || token === 'dev-token') {
       if (config.env === 'development') {
         const devUser =
-          (await User.findOne({ email: 'admin@tapzy.in' })) ||
+          (await User.findOne({ email: { $in: ['admin@kevalon.com', 'admin@tapzy.in'] } })) ||
           (await User.findOne({ role: { $in: ['SUPER_ADMIN', 'ADMIN', 'admin'] } })) ||
           (await User.findOne());
         if (devUser) {
@@ -73,7 +73,7 @@ export async function requireAuth(req, res, next) {
 
     // In development mode, fallback to dev admin on invalid token instead of breaking
     if (config.env === 'development') {
-      const devUser = await User.findOne({ email: 'admin@tapzy.in' });
+      const devUser = await User.findOne({ email: { $in: ['admin@kevalon.com', 'admin@tapzy.in'] } });
       if (devUser) {
         req.user = devUser;
         return next();

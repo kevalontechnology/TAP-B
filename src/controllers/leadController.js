@@ -253,7 +253,7 @@ export async function exportLeads(req, res, next) {
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="tapzy-visitor-leads.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="kevalon-one-visitor-leads.csv"');
     return res.status(200).send(csvContent);
   } catch (err) {
     next(err);

@@ -25,8 +25,8 @@ const qrCodeSchema = new mongoose.Schema(
     },
     destinationType: {
       type: String,
-      enum: ['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA'],
-      default: 'TAPZY_PROFILE',
+      enum: ['WEBSITE', 'TAPZY_PROFILE', 'KEVALON_PROFILE', 'CUSTOM_DATA'],
+      default: 'KEVALON_PROFILE',
     },
     destinationUrl: {
       type: String,

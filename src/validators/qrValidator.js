@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createQrSchema = z.object({
   title: z.string().max(100).optional().default(''),
   description: z.string().max(500).optional().default(''),
-  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).optional().default('TAPZY_PROFILE'),
+  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'KEVALON_PROFILE', 'CUSTOM_DATA']).optional().default('KEVALON_PROFILE'),
   destinationUrl: z.string().optional().default(''),
   customData: z.any().optional().default(null),
   expiresAt: z.string().datetime().nullable().optional(),
@@ -35,14 +35,14 @@ export const assignQrSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required').trim(),
   mobileNumber: z.string().optional().default(''),
   customerRefId: z.string().optional().default(''),
-  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).optional().default('TAPZY_PROFILE'),
+  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'KEVALON_PROFILE', 'CUSTOM_DATA']).optional().default('KEVALON_PROFILE'),
   destinationUrl: z.string().min(1, 'Destination URL is required').trim(),
   customData: z.any().optional().default(null),
   note: z.string().optional().default(''),
 });
 
 export const updateDestinationSchema = z.object({
-  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'CUSTOM_DATA']).optional().default('TAPZY_PROFILE'),
+  destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'KEVALON_PROFILE', 'CUSTOM_DATA']).optional().default('KEVALON_PROFILE'),
   destinationUrl: z.string().min(1, 'Destination URL is required').trim(),
   customData: z.any().optional().default(null),
 });

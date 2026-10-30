@@ -75,33 +75,33 @@ export async function disconnectDB() {
 
 async function seedDefaultUsers() {
   try {
-    const existingAdmin = await User.findOne({ email: /^admin@tapzy\.in$/i });
+    const existingAdmin = await User.findOne({ email: { $in: [/^admin@kevalon\.com$/i, /^admin@tapzy\.in$/i] } });
     if (!existingAdmin) {
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash('Admin@123456', salt);
 
       try {
         await User.create({
-          name: 'Tapzy Super Admin',
-          email: 'admin@tapzy.in',
+          name: 'Kevalon One Super Admin',
+          email: 'admin@kevalon.com',
           passwordHash,
           role: 'SUPER_ADMIN',
           isActive: true,
         });
-        console.log('[Database] Super Admin seeded: admin@tapzy.in (Password: Admin@123456)');
+        console.log('[Database] Super Admin seeded: admin@kevalon.com (Password: Admin@123456)');
       } catch (e) {
         if (e.code !== 11000) console.warn('[Database] Seed admin note:', e.message);
       }
     }
 
-    const existingStaff = await User.findOne({ email: /^staff@tapzy\.in$/i });
+    const existingStaff = await User.findOne({ email: { $in: [/^staff@kevalon\.com$/i, /^staff@tapzy\.in$/i] } });
     if (!existingStaff) {
       const salt = await bcrypt.genSalt(10);
       const staffPasswordHash = await bcrypt.hash('Staff@123456', salt);
       try {
         await User.create({
-          name: 'Tapzy Staff Member',
-          email: 'staff@tapzy.in',
+          name: 'Kevalon One Staff Member',
+          email: 'staff@kevalon.com',
           passwordHash: staffPasswordHash,
           role: 'STAFF',
           isActive: true,

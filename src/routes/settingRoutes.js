@@ -26,9 +26,9 @@ router.get('/public-config', async (req, res, next) => {
         profileBaseUrl,
         qrBaseUrl,
         brandColor: '#034665',
-        companyName: 'Tapzy',
+        companyName: 'Kevalon One',
         supportPhone: config.supportPhone || '+91 98765 43210',
-        supportEmail: config.supportEmail || 'support@tapzy.in',
+        supportEmail: config.supportEmail || 'support@kevalon.com',
         supportWhatsApp: config.supportWhatsApp || '+919876543210',
       },
     });

@@ -18,7 +18,7 @@ import {
 function getPrivacyVisitorId(req) {
   const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
   const ua = req.headers['user-agent'] || '';
-  const salt = process.env.JWT_SECRET || 'tapzy-visitor-salt';
+  const salt = process.env.JWT_SECRET || 'kevalon-visitor-salt';
   return crypto.createHash('sha256').update(`${ip}-${ua}-${salt}`).digest('hex').substring(0, 16);
 }
 
@@ -257,7 +257,7 @@ export async function trackProfileView(req, res, next) {
       profileId: profile._id,
       ownerId: profile.userId,
       eventType: 'profile_view',
-      platform: 'tapzy_profile',
+      platform: 'kevalon_profile',
       referralSource: [
         'qr_scan',
         'qr_code',

@@ -1,6 +1,6 @@
 /**
- * Server-Side HTML Rendering Engine for Tapzy Public Digital Profiles
- * Premium Dark Obsidian & Cyan Theme matching Tapzy Digital Business Cards
+ * Server-Side HTML Rendering Engine for Kevalon One Public Digital Profiles
+ * Premium Dark Obsidian & Cyan Theme matching Kevalon One Digital Business Cards
  * Strict Conditional Rendering: Sections and rows are ONLY shown if data exists.
  */
 
@@ -107,7 +107,7 @@ function resolveMedia(url) {
 }
 
 /**
- * Render the Complete Ultra-Premium Tapzy Digital Business Card HTML
+ * Render the Complete Ultra-Premium Kevalon One Digital Business Card HTML
  * Matches user's exact uploaded design with dynamic theme color selected by the user
  */
 export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
@@ -236,10 +236,10 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>${name} | Tapzy Digital Profile</title>
+  <title>${name} | Kevalon One Digital Profile</title>
   
   <!-- Primary Meta Tags -->
-  <meta name="title" content="${name} | Tapzy Digital Business Card">
+  <meta name="title" content="${name} | Kevalon One Digital Business Card">
   <meta name="description" content="${bio ? bio.substring(0, 160) : `${name} - ${designation} at ${companyName}`}">
   
   <!-- Open Graph / WhatsApp / Facebook -->
@@ -379,7 +379,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
                <div class="grid grid-cols-4 gap-2 text-xs">
                  ${
                    whatsapp || mobile
-                     ? `<a href="https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Hi ${name}, I connected with you via your Tapzy profile.`)}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="WhatsApp">
+                     ? `<a href="https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Hi ${name}, I connected with you via your Kevalon One profile.`)}" target="_blank" rel="noopener noreferrer" class="aspect-square rounded-2xl bg-[#0f1420] border border-slate-800 flex items-center justify-center text-white active:scale-95 transition-all shadow-md group" onmouseenter="this.style.borderColor='${theme.primary}'; this.style.boxShadow='0 0 14px ${theme.rgba(0.35)}';" onmouseleave="this.style.borderColor='rgb(30 41 59)'; this.style.boxShadow='none';" title="WhatsApp">
                           <div class="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             ${ICONS.whatsapp}
                           </div>
@@ -645,11 +645,11 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
 
     <!-- 12. Footer Branding & App Badges -->
     <div class="pt-6 pb-2 text-center space-y-4">
-      <!-- Tapzy Logo with Gradient -->
+      <!-- Kevalon One Logo with Gradient -->
       <div class="flex items-center justify-center gap-1.5">
-        <a href="https://tapzy.in" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-base font-black tracking-wide">
+        <a href="https://kevalon.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-base font-black tracking-wide">
           <span class="font-extrabold text-lg" style="color: ${theme.primary};">⚡</span>
-          <span class="text-white">Tapzy</span><span class="text-[10px] -mt-2" style="color: ${theme.primary};">®</span>
+          <span class="text-white">Kevalon One</span><span class="text-[10px] -mt-2" style="color: ${theme.primary};">®</span>
         </a>
       </div>
 
@@ -696,15 +696,13 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
   <div id="toast-notify" class="fixed top-5 inset-x-0 max-w-xs mx-auto px-4 py-2.5 rounded-2xl font-bold text-xs shadow-2xl text-center transition-all opacity-0 pointer-events-none transform -translate-y-4 z-50" style="background-color: ${theme.primary}; color: ${theme.buttonText};">
     Link copied to clipboard!
   </div>
-    Link copied to clipboard!
-  </div>
 
   <!-- Client-side Interactive Scripts -->
   <script>
     (function() {
       const username = '${profile.username}';
       const shareUrl = '${publicUrl}';
-      const shareTitle = '${name} | Tapzy Digital Business Card';
+      const shareTitle = '${name} | Kevalon One Digital Business Card';
 
       // 1. Auto track profile view
       try {
@@ -736,7 +734,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
             try {
               await navigator.share({
                 title: shareTitle,
-                text: 'Connect with ' + '${name}' + ' on Tapzy:',
+                text: 'Connect with ' + '${name}' + ' on Kevalon One:',
                 url: shareUrl
               });
             } catch (err) {}
@@ -767,7 +765,7 @@ export function renderProfileNotFoundHtml({ username }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile Not Found | Tapzy</title>
+  <title>Profile Not Found | Kevalon One</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #06080d; }</style>
@@ -782,8 +780,8 @@ export function renderProfileNotFoundHtml({ username }) {
       The profile <strong class="text-white font-mono">@${sanitizeHtml(username)}</strong> does not exist or has been removed.
     </p>
     <div class="pt-2">
-      <a href="https://tapzy.in" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
-        Visit Tapzy.in
+      <a href="https://kevalon.com" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
+        Visit Kevalon.com
       </a>
     </div>
   </div>
@@ -806,7 +804,7 @@ export function renderProfileUnavailableHtml({ username, reason = 'private' }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title} | Tapzy</title>
+  <title>${title} | Kevalon One</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #06080d; }</style>
@@ -819,8 +817,8 @@ export function renderProfileUnavailableHtml({ username, reason = 'private' }) {
     <h1 class="text-xl font-bold text-white">${title}</h1>
     <p class="text-xs text-slate-400 leading-relaxed">${desc}</p>
     <div class="pt-2">
-      <a href="https://tapzy.in" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
-        Visit Tapzy.in
+      <a href="https://kevalon.com" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
+        Visit Kevalon.com
       </a>
     </div>
   </div>

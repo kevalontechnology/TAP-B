@@ -297,7 +297,7 @@ export async function downloadSingle(req, res, next) {
     const baseUrl = await getActiveBaseUrl(req);
     const dynamicShortUrl = `${baseUrl}/q/${qr.publicCode}`;
     const format = (req.query.format || 'png').toLowerCase();
-    const filename = `Tapzy-${qr.publicCode}`;
+    const filename = `KevalonOne-${qr.publicCode}`;
 
     if (format === 'svg') {
       const svg = await generateQrSvgString(dynamicShortUrl, {
@@ -349,7 +349,7 @@ export async function downloadBatchCsv(req, res, next) {
     const baseUrl = await getActiveBaseUrl(req);
     const csvData = generateCsvContent(qrs, baseUrl);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="Tapzy-Batch-${batchId}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="KevalonOne-Batch-${batchId}.csv"`);
     return res.send(csvData);
   } catch (err) {
     next(err);
@@ -368,7 +368,7 @@ export async function exportAllCsv(req, res, next) {
     const csvData = generateCsvContent(qrs, baseUrl);
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="Tapzy-QRCodes-Export.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="KevalonOne-QRCodes-Export.csv"`);
     return res.send(csvData);
   } catch (err) {
     next(err);
