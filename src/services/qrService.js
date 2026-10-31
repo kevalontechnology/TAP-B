@@ -59,7 +59,7 @@ export async function createSingleQr(data, user) {
 
   const qrTitle = (
     data.title?.trim() ||
-    (assignedToData.customerName ? `${assignedToData.customerName}'s Kevalon One QR` : `Kevalon One QR ${publicCode}`)
+    (assignedToData.customerName ? `${assignedToData.customerName}'s KevalonTap QR` : `KevalonTap QR ${publicCode}`)
   );
 
   // Store only the code in MongoDB! No hardcoded shortUrl stored.
@@ -200,8 +200,8 @@ export async function assignQr(qrId, data, user) {
   qr.status = 'ACTIVE';
   qr.updatedBy = user?._id || null;
 
-  if (data.customerName && (!qr.title || qr.title.startsWith('Tapzy QR') || qr.title.startsWith('Tapzy Standee') || qr.title.startsWith('Kevalon One QR') || qr.title.startsWith('Kevalon One Standee'))) {
-    qr.title = `${data.customerName.trim()}'s Kevalon One QR`;
+  if (data.customerName && (!qr.title || qr.title.startsWith('Tapzy QR') || qr.title.startsWith('Tapzy Standee') || qr.title.startsWith('KevalonTap QR') || qr.title.startsWith('KevalonTap Standee') || qr.title.startsWith('KevalonTap QR') || qr.title.startsWith('KevalonTap Standee'))) {
+    qr.title = `${data.customerName.trim()}'s KevalonTap QR`;
   }
 
   await qr.save();
@@ -307,7 +307,7 @@ export async function streamBatchZip(batchId, res) {
   const baseUrl = await getActiveBaseUrl();
 
   res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', `attachment; filename="KevalonOne-Batch-${batchId}.zip"`);
+  res.setHeader('Content-Disposition', `attachment; filename="KevalonTap-Batch-${batchId}.zip"`);
 
   const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -338,7 +338,7 @@ export async function streamBatchZip(batchId, res) {
 /**
  * Generate CSV string from QR code array with dynamic base URL
  */
-export function generateCsvContent(qrs, baseUrl = 'https://qr.kevalonone.com') {
+export function generateCsvContent(qrs, baseUrl = 'https://qr.kevalontap.com') {
   const headers = [
     'Public Code',
     'Title',

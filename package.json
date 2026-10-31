@@ -1,7 +1,7 @@
 {
   "name": "dynamic-qr-backend",
   "version": "1.0.0",
-  "description": "Dynamic QR Code Management System Backend for Kevalon Technology / Kevalon One",
+  "description": "Dynamic QR Code Management System Backend for Kevalon Technology / KevalonTap",
   "main": "server.js",
   "type": "module",
   "scripts": {

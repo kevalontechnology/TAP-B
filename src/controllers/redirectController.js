@@ -21,7 +21,7 @@ function renderBrandedStatusPage({ title, badge, message, helpText, iconType = '
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title} | Kevalon One Dynamic QR</title>
+  <title>${title} | KevalonTap Dynamic QR</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,7 +38,7 @@ function renderBrandedStatusPage({ title, badge, message, helpText, iconType = '
     <div class="relative z-10">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/50 text-xs font-semibold tracking-wide text-indigo-400 mb-6">
         <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-        Kevalon One Smart QR
+        KevalonTap Smart QR
       </div>
 
       <div class="mx-auto w-16 h-16 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mb-6 shadow-inner">
@@ -56,7 +56,7 @@ function renderBrandedStatusPage({ title, badge, message, helpText, iconType = '
 
       <div class="border-t border-slate-800/80 pt-6">
         <p class="text-xs text-slate-500">
-          Powered by <strong class="text-slate-300 font-semibold">Kevalon One</strong> &bull; Kevalon Technology
+          Powered by <strong class="text-slate-300 font-semibold">KevalonTap</strong> &bull; Kevalon Technology
         </p>
       </div>
     </div>
@@ -72,7 +72,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
   const phone = config.supportPhone || '+91 98765 43210';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const email = config.supportEmail || 'support@kevalon.com';
-  const waText = encodeURIComponent(`Hello Kevalon One Support, I scanned QR Code (${publicCode}: ${qr.title}) and it is currently Disabled. Please help activate it.`);
+  const waText = encodeURIComponent(`Hello KevalonTap Support, I scanned QR Code (${publicCode}: ${qr.title}) and it is currently Disabled. Please help activate it.`);
   const waUrl = `https://wa.me/${cleanPhone}?text=${waText}`;
 
   return `<!DOCTYPE html>
@@ -80,7 +80,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Inactive | Kevalon One Smart Tag</title>
+  <title>QR Code Inactive | KevalonTap Smart Tag</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -316,10 +316,10 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
     <!-- Footer Info -->
     <div class="border-t border-slate-800/80 pt-5 mt-6 text-center space-y-1.5">
       <p class="text-[11px] text-slate-500">
-        Tag Owner? <a href="/login" class="text-indigo-400 font-semibold hover:underline">Log in to Kevalon One Portal</a> to unpause.
+        Tag Owner? <a href="/login" class="text-indigo-400 font-semibold hover:underline">Log in to KevalonTap Portal</a> to unpause.
       </p>
       <p class="text-[10px] text-slate-600 font-medium">
-        Secured by <strong class="text-slate-400">Kevalon One Dynamic Engine</strong> &bull; Kevalon Technology
+        Secured by <strong class="text-slate-400">KevalonTap Dynamic Engine</strong> &bull; Kevalon Technology
       </p>
     </div>
   </div>
@@ -471,7 +471,7 @@ export async function handleRedirect(req, res) {
           title: 'QR Code Not Assigned',
           badge: { text: 'Pending Activation', color: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
           message: 'This dynamic QR code has been generated but has not been assigned a destination yet.',
-          helpText: 'If you are the owner or distributor of this Kevalon One QR tag, please assign a destination via your Kevalon One Portal to activate it.',
+          helpText: 'If you are the owner or distributor of this KevalonTap QR tag, please assign a destination via your KevalonTap Portal to activate it.',
           iconType: 'info',
         })
       );
@@ -534,7 +534,7 @@ export async function handleRedirect(req, res) {
           title: 'Destination Not Configured',
           badge: { text: 'Missing URL', color: 'bg-red-500/10 text-red-400 border border-red-500/20' },
           message: 'This QR code is marked active but has no destination URL configured.',
-          helpText: 'Please update the destination URL in the Kevalon One Dashboard.',
+          helpText: 'Please update the destination URL in the KevalonTap Dashboard.',
           iconType: 'error',
         })
       );

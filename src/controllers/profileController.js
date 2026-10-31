@@ -466,7 +466,7 @@ export function buildVCardString(profile, publicUrl) {
   if (profile.email1) parts.push(`EMAIL;TYPE=PREF,INTERNET:${profile.email1}`);
   if (profile.email2) parts.push(`EMAIL;TYPE=WORK,INTERNET:${profile.email2}`);
   if (profile.companyWebsite) parts.push(`URL;TYPE=WORK:${profile.companyWebsite}`);
-  if (publicUrl) parts.push(`URL;TYPE=KevalonOneProfile:${publicUrl}`);
+  if (publicUrl) parts.push(`URL;TYPE=KevalonTapProfile:${publicUrl}`);
   if (profile.companyAddress) parts.push(`ADR;TYPE=WORK:;;${profile.companyAddress};;;;`);
   if (profile.bio) parts.push(`NOTE:${profile.bio.replace(/\n/g, '\\n')}`);
 
@@ -703,7 +703,7 @@ export async function linkQrToCard(req, res, next) {
           customerName: profile.fullName,
           mobileNumber: profile.mobileNumber,
           customerRefId: String(profile.userId),
-          note: `Linked to Kevalon One Profile: @${profile.username}`,
+          note: `Linked to KevalonTap Profile: @${profile.username}`,
         };
         qr.assignedAt = new Date();
         await qr.save();
@@ -758,9 +758,9 @@ export async function getNfcPayload(req, res, next) {
           'Install the free "NFC Tools" app from Google Play Store or Apple App Store.',
           'Open NFC Tools and tap on the "Write" tab.',
           'Tap "Add a record" and choose "Custom URL / URI".',
-          'Paste your Kevalon One Card URL into the URI field.',
+          'Paste your KevalonTap Card URL into the URI field.',
           'Tap "Write" and touch your physical NFC PVC Card to the back of your smartphone.',
-          'Success! Your Kevalon One Digital Business Card is now permanently active and ready for instant contactless sharing.',
+          'Success! Your KevalonTap Digital Business Card is now permanently active and ready for instant contactless sharing.',
         ],
       },
     });

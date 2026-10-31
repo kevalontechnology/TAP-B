@@ -82,7 +82,7 @@ async function seedDefaultUsers() {
 
       try {
         await User.create({
-          name: 'Kevalon One Super Admin',
+          name: 'KevalonTap Super Admin',
           email: 'admin@kevalon.com',
           passwordHash,
           role: 'SUPER_ADMIN',
@@ -100,7 +100,7 @@ async function seedDefaultUsers() {
       const staffPasswordHash = await bcrypt.hash('Staff@123456', salt);
       try {
         await User.create({
-          name: 'Kevalon One Staff Member',
+          name: 'KevalonTap Staff Member',
           email: 'staff@kevalon.com',
           passwordHash: staffPasswordHash,
           role: 'STAFF',

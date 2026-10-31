@@ -64,7 +64,7 @@ export async function exportScanLogsCsv(req, res, next) {
     const csvData = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="KevalonOne-Scan-Logs.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="KevalonTap-Scan-Logs.csv"`);
     return res.send(csvData);
   } catch (err) {
     next(err);

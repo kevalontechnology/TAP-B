@@ -376,7 +376,7 @@ export async function verifyPhoneOtp(req, res, next) {
 
     // Find user by phone, or email fallback
     let user = await User.findOne({
-      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@kevalonone.com` }, { email: `${cleanPhone}@tapzy.in` }],
+      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@tapzy.in` }],
     });
 
     if (!user) {
@@ -387,7 +387,7 @@ export async function verifyPhoneOtp(req, res, next) {
 
       user = await User.create({
         name: `User ${cleanPhone.slice(-4)}`,
-        email: `${cleanPhone}@kevalonone.com`,
+        email: `${cleanPhone}@kevalontap.com`,
         phone: cleanPhone,
         passwordHash,
         role: 'CUSTOMER',

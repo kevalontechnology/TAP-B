@@ -367,7 +367,7 @@ export async function getLinkStatistics(req, res, next) {
           count: l.count,
         })),
         measurementNote:
-          'Kevalon One records verified redirection clicks. External platform engagement is not directly trackable once visitor leaves Kevalon One.',
+          'KevalonTap records verified redirection clicks. External platform engagement is not directly trackable once visitor leaves KevalonTap.',
       },
     });
   } catch (err) {

@@ -45,7 +45,7 @@ export async function getActiveBaseUrl(req = null) {
     }
   }
 
-  return 'https://qr.kevalonone.com';
+  return 'https://qr.kevalontap.com';
 }
 
 /**
@@ -111,7 +111,7 @@ export async function getActiveProfileBaseUrl(req = null) {
     }
   }
 
-  return 'https://profile.kevalonone.com';
+  return 'https://profile.kevalontap.com';
 }
 
 /**
@@ -129,7 +129,7 @@ export async function setActiveProfileBaseUrl(url, userId = null) {
     {
       key: 'PUBLIC_PROFILE_BASE_URL',
       value: cleanUrl,
-      description: 'Configurable Public Profile Base Domain for Kevalon One Digital Profiles and NFC/QR sharing',
+      description: 'Configurable Public Profile Base Domain for KevalonTap Digital Profiles and NFC/QR sharing',
       updatedBy: userId,
     },
     { upsert: true, new: true }
