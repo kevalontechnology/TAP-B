@@ -106,7 +106,7 @@ export async function listAllProfiles(req, res, next) {
         .sort(sort)
         .skip(skip)
         .limit(limitNum)
-        .populate('userId', 'name email role phone'),
+        .populate('userId', 'name username email role phone'),
       DigitalProfile.countDocuments(query),
       DigitalProfile.countDocuments({ isActive: true }),
       DigitalProfile.countDocuments({ isActive: false }),
