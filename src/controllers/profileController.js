@@ -232,9 +232,14 @@ export async function updateProfile(req, res, next) {
       );
     }
 
+    const isAdmin = req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN';
     // Assign validated fields
     Object.keys(validated).forEach((key) => {
       if (key !== 'username' && validated[key] !== undefined) {
+        if (key === 'isActive' && !isAdmin) {
+          // Customers cannot self-activate their profile/card; only Admin can enable
+          return;
+        }
         profile[key] = validated[key];
       }
     });
@@ -268,14 +273,11 @@ export async function toggleStatus(req, res, next) {
       });
     }
 
-    if (
-      profile.userId.toString() !== req.user._id.toString() &&
-      req.user.role !== 'SUPER_ADMIN' &&
-      req.user.role !== 'ADMIN'
-    ) {
+    // Only Admin can enable / disable profiles
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
       return res.status(403).json({
         success: false,
-        error: 'You are not authorized to modify this profile',
+        error: 'Only administrators can enable or disable profiles.',
       });
     }
 
@@ -645,12 +647,12 @@ export async function toggleCardStatus(req, res, next) {
       return res.status(404).json({ success: false, error: 'Profile not found' });
     }
 
-    if (
-      profile.userId.toString() !== req.user._id.toString() &&
-      req.user.role !== 'SUPER_ADMIN' &&
-      req.user.role !== 'ADMIN'
-    ) {
-      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    // Only Admin can enable / disable cards
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only administrators can enable or disable cards.',
+      });
     }
 
     profile.isActive = !profile.isActive;
