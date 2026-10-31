@@ -83,15 +83,19 @@ async function seedDefaultUsers() {
       try {
         await User.create({
           name: 'KevalonTap Super Admin',
+          username: 'admin',
           email: 'admin@kevalon.com',
           passwordHash,
           role: 'SUPER_ADMIN',
           isActive: true,
         });
-        console.log('[Database] Super Admin seeded: admin@kevalon.com (Password: Admin@123456)');
+        console.log('[Database] Super Admin seeded: admin@kevalon.com (Username: admin, Password: Admin@123456)');
       } catch (e) {
         if (e.code !== 11000) console.warn('[Database] Seed admin note:', e.message);
       }
+    } else if (!existingAdmin.username) {
+      existingAdmin.username = 'admin';
+      await existingAdmin.save();
     }
 
     const existingStaff = await User.findOne({ email: { $in: [/^staff@kevalon\.com$/i, /^staff@tapzy\.in$/i] } });
@@ -101,15 +105,19 @@ async function seedDefaultUsers() {
       try {
         await User.create({
           name: 'KevalonTap Staff Member',
+          username: 'staff',
           email: 'staff@kevalon.com',
           passwordHash: staffPasswordHash,
           role: 'STAFF',
           isActive: true,
         });
-        console.log('[Database] Staff user seeded: staff@tapzy.in (Password: Staff@123456)');
+        console.log('[Database] Staff user seeded: staff@kevalon.com (Username: staff, Password: Staff@123456)');
       } catch (e) {
         if (e.code !== 11000) console.warn('[Database] Seed staff note:', e.message);
       }
+    } else if (!existingStaff.username) {
+      existingStaff.username = 'staff';
+      await existingStaff.save();
     }
   } catch (err) {
     console.error('[Database] Error checking default users:', err.message);

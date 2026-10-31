@@ -32,12 +32,28 @@ function generateToken(user) {
 export async function login(req, res, next) {
   try {
     const validated = loginSchema.parse(req.body);
-    const user = await User.findOne({ email: validated.email.toLowerCase() });
+    const identifier = (validated.email || validated.username || '').trim().toLowerCase();
+
+    // 1. Look up directly in User (by email or username)
+    let user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { username: identifier },
+      ],
+    });
+
+    // 2. If not found in User, check DigitalProfile username
+    if (!user) {
+      const profile = await DigitalProfile.findOne({ username: identifier });
+      if (profile && profile.userId) {
+        user = await User.findById(profile.userId);
+      }
+    }
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid email or password',
+        error: 'Invalid username, email, or password',
       });
     }
 
@@ -52,7 +68,7 @@ export async function login(req, res, next) {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid email or password',
+        error: 'Invalid username, email, or password',
       });
     }
 
@@ -68,6 +84,7 @@ export async function login(req, res, next) {
       user: {
         id: user._id,
         name: user.name,
+        username: user.username || '',
         email: user.email,
         phone: user.phone || '',
         avatarUrl: user.avatarUrl || '',
@@ -139,6 +156,7 @@ export async function getMe(req, res) {
     user: {
       id: req.user._id,
       name: req.user.name,
+      username: req.user.username || '',
       email: req.user.email,
       phone: req.user.phone || '',
       avatarUrl: req.user.avatarUrl || '',
@@ -306,6 +324,15 @@ export async function sendPhoneOtp(req, res, next) {
       });
     }
 
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [
+        { phone: cleanPhone },
+        { email: `${cleanPhone}@kevalontap.com` },
+        { email: `${cleanPhone}@tapzy.in` },
+      ],
+    });
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
@@ -324,6 +351,7 @@ export async function sendPhoneOtp(req, res, next) {
       success: true,
       message: `OTP sent successfully to +91 ${cleanPhone}`,
       phone: cleanPhone,
+      existingName: existingUser?.name && !existingUser.name.startsWith('User ') ? existingUser.name : '',
       demoOtp: config.env !== 'production' ? otp : undefined,
       expiresInSeconds: 300,
     });
@@ -338,7 +366,7 @@ export async function sendPhoneOtp(req, res, next) {
  */
 export async function verifyPhoneOtp(req, res, next) {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, name } = req.body;
     const cleanPhone = normalizePhone(phone);
 
     if (!cleanPhone || cleanPhone.length !== 10) {
@@ -376,8 +404,10 @@ export async function verifyPhoneOtp(req, res, next) {
 
     // Find user by phone, or email fallback
     let user = await User.findOne({
-      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@tapzy.in` }],
+      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@tapzy.in` }],
     });
+
+    const candidateName = name && typeof name === 'string' && name.trim().length > 0 ? name.trim() : '';
 
     if (!user) {
       // Auto-register new customer user
@@ -386,7 +416,7 @@ export async function verifyPhoneOtp(req, res, next) {
       const passwordHash = await bcrypt.hash(randomPassword, salt);
 
       user = await User.create({
-        name: `User ${cleanPhone.slice(-4)}`,
+        name: candidateName || `User ${cleanPhone.slice(-4)}`,
         email: `${cleanPhone}@kevalontap.com`,
         phone: cleanPhone,
         passwordHash,
@@ -405,6 +435,9 @@ export async function verifyPhoneOtp(req, res, next) {
       if (!user.phone) {
         user.phone = cleanPhone;
       }
+      if (candidateName && (user.name.startsWith('User ') || !user.name)) {
+        user.name = candidateName;
+      }
       await user.save();
     }
 
@@ -417,6 +450,7 @@ export async function verifyPhoneOtp(req, res, next) {
       user: {
         id: user._id,
         name: user.name,
+        username: user.username || '',
         email: user.email,
         phone: user.phone || cleanPhone,
         avatarUrl: user.avatarUrl || '',

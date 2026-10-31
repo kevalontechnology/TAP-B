@@ -1,8 +1,12 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().optional(),
+  username: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+}).refine(data => (data.email && data.email.trim().length > 0) || (data.username && data.username.trim().length > 0), {
+  message: 'Please enter your username or email address',
+  path: ['email'],
 });
 
 export const changePasswordSchema = z.object({
@@ -34,6 +38,7 @@ export const resetPasswordSchema = z.object({
 
 export const createUserSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').trim(),
+  username: z.string().min(3).max(30).regex(/^[a-z0-9_-]+$/i, 'Username must be alphanumeric, dashes, or underscores').optional(),
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   role: z.enum(['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CUSTOMER']).default('CUSTOMER'),

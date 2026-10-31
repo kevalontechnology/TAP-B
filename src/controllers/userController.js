@@ -26,11 +26,23 @@ export async function createUser(req, res, next) {
       });
     }
 
+    let username = validated.username ? validated.username.toLowerCase().trim() : null;
+    if (username) {
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        return res.status(409).json({
+          success: false,
+          error: 'This username is already taken',
+        });
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(validated.password, salt);
 
     const user = await User.create({
       name: validated.name,
+      username: username || undefined,
       email: validated.email.toLowerCase(),
       passwordHash,
       role: validated.role,
