@@ -126,8 +126,16 @@ const updateProfileBaseUrlHandler = async (req, res, next) => {
       });
     }
 
+    const cleanUrl = profileBaseUrl.trim().replace(/\/+$/, '');
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Profile Base URL must begin with http:// or https://',
+      });
+    }
+
     const oldUrl = await getActiveProfileBaseUrl(req);
-    const updatedUrl = await setActiveProfileBaseUrl(profileBaseUrl, req.user?._id);
+    const updatedUrl = await setActiveProfileBaseUrl(cleanUrl, req.user?._id);
 
     await logAuditAction({
       action: 'PROFILE_BASE_URL_UPDATED',
