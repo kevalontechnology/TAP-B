@@ -21,10 +21,11 @@ export const updateProfileSchema = z.object({
 });
 
 export const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').trim(),
+  name: z.string().min(2, 'Full Name must be at least 2 characters').trim(),
+  phone: z.string().min(10, 'Please enter a valid 10-digit mobile number').trim(),
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().optional().default(''),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  dob: z.string().optional().default(''),
 });
 
 export const forgotPasswordSchema = z.object({

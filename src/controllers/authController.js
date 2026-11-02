@@ -100,23 +100,36 @@ export async function login(req, res, next) {
 export async function register(req, res, next) {
   try {
     const validated = registerSchema.parse(req.body);
-    const existing = await User.findOne({ email: validated.email.toLowerCase() });
+    const cleanPhone = normalizePhone(validated.phone);
 
-    if (existing) {
+    const existingEmail = await User.findOne({ email: validated.email.toLowerCase() });
+    if (existingEmail) {
       return res.status(400).json({
         success: false,
         error: 'An account with this email address already exists',
       });
     }
 
+    if (cleanPhone) {
+      const existingPhone = await User.findOne({ phone: cleanPhone });
+      if (existingPhone) {
+        return res.status(400).json({
+          success: false,
+          error: 'An account with this mobile number already exists',
+        });
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(validated.password, salt);
+    const rawPassword = validated.password || crypto.randomBytes(16).toString('hex');
+    const passwordHash = await bcrypt.hash(rawPassword, salt);
 
     const user = await User.create({
       name: validated.name,
       email: validated.email.toLowerCase(),
       passwordHash,
-      phone: validated.phone || '',
+      phone: cleanPhone || validated.phone || '',
+      dob: validated.dob ? new Date(validated.dob) : null,
       role: 'CUSTOMER',
       isActive: true,
       lastLogin: new Date(),
@@ -133,6 +146,7 @@ export async function register(req, res, next) {
         name: user.name,
         email: user.email,
         phone: user.phone || '',
+        dob: user.dob || null,
         avatarUrl: user.avatarUrl || '',
         role: user.role,
         lastLogin: user.lastLogin,

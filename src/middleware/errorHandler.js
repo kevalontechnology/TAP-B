@@ -1,7 +1,9 @@
 import { ZodError } from 'zod';
 
 export function errorHandler(err, req, res, next) {
-  console.error('[Error Handler]', err);
+  try {
+    console.error('[Error Handler]', err?.message || String(err));
+  } catch (_) {}
 
   // Handle Zod validation error
   if (err instanceof ZodError) {
