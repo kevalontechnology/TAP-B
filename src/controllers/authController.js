@@ -328,13 +328,21 @@ function normalizePhone(rawPhone = '') {
  */
 export async function sendPhoneOtp(req, res, next) {
   try {
-    const { phone } = req.body;
+    const { phone, name } = req.body;
     const cleanPhone = normalizePhone(phone);
 
     if (!cleanPhone || cleanPhone.length !== 10) {
       return res.status(400).json({
         success: false,
         error: 'Please enter a valid 10-digit mobile number',
+      });
+    }
+
+    const candidateName = typeof name === 'string' ? name.trim() : '';
+    if (!candidateName || candidateName.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter your registered Full Name',
       });
     }
 
@@ -346,6 +354,31 @@ export async function sendPhoneOtp(req, res, next) {
         { email: `${cleanPhone}@tapzy.in` },
       ],
     });
+
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'No account found with this mobile number. Please register first.',
+      });
+    }
+
+    if (!existingUser.isActive) {
+      return res.status(403).json({
+        success: false,
+        error: 'Your account has been deactivated. Please contact administrator.',
+      });
+    }
+
+    // Compare name (case-insensitive, normalizing whitespace)
+    const normalizedCandidate = candidateName.replace(/\s+/g, ' ').toLowerCase();
+    const normalizedExisting = String(existingUser.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+    if (normalizedCandidate !== normalizedExisting) {
+      return res.status(400).json({
+        success: false,
+        error: 'The entered Full Name does not match our records for this mobile number.',
+      });
+    }
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -365,7 +398,6 @@ export async function sendPhoneOtp(req, res, next) {
       success: true,
       message: `OTP sent successfully to +91 ${cleanPhone}`,
       phone: cleanPhone,
-      existingName: existingUser?.name && !existingUser.name.startsWith('User ') ? existingUser.name : '',
       demoOtp: config.env !== 'production' ? otp : undefined,
       expiresInSeconds: 300,
     });
@@ -376,7 +408,7 @@ export async function sendPhoneOtp(req, res, next) {
 
 /**
  * POST /api/auth/verify-otp
- * Verifies mobile OTP and logs in / signs up the user
+ * Verifies mobile OTP and logs in the user (requires existing registered user)
  */
 export async function verifyPhoneOtp(req, res, next) {
   try {
@@ -397,9 +429,41 @@ export async function verifyPhoneOtp(req, res, next) {
       });
     }
 
-    const trimmedOtp = String(otp).trim();
+    // 1. Find user by phone, or email fallback
+    const user = await User.findOne({
+      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@tapzy.in` }],
+    });
 
-    // Verify OTP against database or development fallback (123456)
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'No account found with this mobile number. Please register first.',
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        error: 'Your account has been deactivated. Please contact administrator.',
+      });
+    }
+
+    // 2. Verify candidate name matches registered user's name
+    const candidateName = typeof name === 'string' ? name.trim() : '';
+    if (candidateName) {
+      const normalizedCandidate = candidateName.replace(/\s+/g, ' ').toLowerCase();
+      const normalizedRegistered = String(user.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+      if (normalizedCandidate !== normalizedRegistered) {
+        return res.status(400).json({
+          success: false,
+          error: 'The entered Full Name does not match our records for this mobile number.',
+        });
+      }
+    }
+
+    // 3. Verify OTP against database or development fallback (123456)
+    const trimmedOtp = String(otp).trim();
     const storedOtp = await PhoneOtp.findOne({ phone: cleanPhone });
     const isDevFallback = config.env !== 'production' && trimmedOtp === '123456';
     const isMatch = storedOtp && storedOtp.otp === trimmedOtp && storedOtp.expiresAt > new Date();
@@ -411,49 +475,16 @@ export async function verifyPhoneOtp(req, res, next) {
       });
     }
 
-    // Clear OTP after successful verification
+    // 4. Clear OTP only after successful verification
     if (storedOtp) {
       await PhoneOtp.deleteOne({ _id: storedOtp._id });
     }
 
-    // Find user by phone, or email fallback
-    let user = await User.findOne({
-      $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@kevalontap.com` }, { email: `${cleanPhone}@tapzy.in` }],
-    });
-
-    const candidateName = name && typeof name === 'string' && name.trim().length > 0 ? name.trim() : '';
-
-    if (!user) {
-      // Auto-register new customer user
-      const randomPassword = crypto.randomBytes(16).toString('hex');
-      const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash(randomPassword, salt);
-
-      user = await User.create({
-        name: candidateName || `User ${cleanPhone.slice(-4)}`,
-        email: `${cleanPhone}@kevalontap.com`,
-        phone: cleanPhone,
-        passwordHash,
-        role: 'CUSTOMER',
-        isActive: true,
-        lastLogin: new Date(),
-      });
-    } else {
-      if (!user.isActive) {
-        return res.status(403).json({
-          success: false,
-          error: 'Your account has been deactivated. Please contact administrator.',
-        });
-      }
-      user.lastLogin = new Date();
-      if (!user.phone) {
-        user.phone = cleanPhone;
-      }
-      if (candidateName && (user.name.startsWith('User ') || !user.name)) {
-        user.name = candidateName;
-      }
-      await user.save();
+    user.lastLogin = new Date();
+    if (!user.phone) {
+      user.phone = cleanPhone;
     }
+    await user.save();
 
     const token = generateToken(user);
 
