@@ -1,9 +1,11 @@
 import { getDashboardOverview, getQrCodeAnalytics } from '../services/analyticsService.js';
 import { QRScanLog } from '../models/QRScanLog.js';
+import { QRCode } from '../models/QRCode.js';
+import { getUserQrFilter, getUserQrIds } from '../utils/userQrScope.js';
 
 export async function getDashboard(req, res, next) {
   try {
-    const data = await getDashboardOverview();
+    const data = await getDashboardOverview(req.user);
     return res.status(200).json({
       success: true,
       data,
@@ -15,6 +17,18 @@ export async function getDashboard(req, res, next) {
 
 export async function getQrAnalytics(req, res, next) {
   try {
+    // Non-admin scope check
+    const userFilter = await getUserQrFilter(req.user);
+    if (userFilter) {
+      const allowed = await QRCode.exists({ _id: req.params.id, ...userFilter });
+      if (!allowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized: this QR Code does not belong to your account',
+        });
+      }
+    }
+
     const data = await getQrCodeAnalytics(req.params.id);
     if (!data) {
       return res.status(404).json({
@@ -35,7 +49,25 @@ export async function exportScanLogsCsv(req, res, next) {
   try {
     const { qrCodeId } = req.query;
     const query = {};
-    if (qrCodeId) query.qrCodeId = qrCodeId;
+
+    // Non-admin scope check for scan logs
+    const userQrIds = await getUserQrIds(req.user);
+    if (userQrIds) {
+      if (qrCodeId) {
+        const isOwned = userQrIds.some((id) => id.toString() === qrCodeId.toString());
+        if (!isOwned) {
+          return res.status(403).json({
+            success: false,
+            error: 'Unauthorized: this QR code does not belong to your account',
+          });
+        }
+        query.qrCodeId = qrCodeId;
+      } else {
+        query.qrCodeId = { $in: userQrIds };
+      }
+    } else if (qrCodeId) {
+      query.qrCodeId = qrCodeId;
+    }
 
     const logs = await QRScanLog.find(query).sort({ scannedAt: -1 }).limit(5000);
 

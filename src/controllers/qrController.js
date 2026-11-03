@@ -20,6 +20,7 @@ import {
 } from '../validators/qrValidator.js';
 import { logAuditAction } from '../services/auditService.js';
 import { getActiveBaseUrl } from '../utils/baseUrlHelper.js';
+import { getUserQrFilter } from '../utils/userQrScope.js';
 
 export async function create(req, res, next) {
   try {
@@ -83,6 +84,17 @@ export async function list(req, res, next) {
       ];
     }
 
+    // Role-based scope: non-admins only see their own QR codes
+    const userFilter = await getUserQrFilter(req.user);
+    if (userFilter) {
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, userFilter];
+        delete query.$or;
+      } else {
+        Object.assign(query, userFilter);
+      }
+    }
+
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
@@ -128,6 +140,18 @@ export async function getById(req, res, next) {
       });
     }
 
+    // Role-based scope check
+    const userFilter = await getUserQrFilter(req.user);
+    if (userFilter) {
+      const allowed = await QRCode.exists({ _id: qr._id, ...userFilter });
+      if (!allowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized: this QR code does not belong to your account',
+        });
+      }
+    }
+
     const baseUrl = await getActiveBaseUrl(req);
     const qrObj = {
       ...qr.toJSON(),
@@ -151,6 +175,18 @@ export async function update(req, res, next) {
         success: false,
         error: 'QR code not found',
       });
+    }
+
+    // Role-based scope check
+    const userFilter = await getUserQrFilter(req.user);
+    if (userFilter) {
+      const allowed = await QRCode.exists({ _id: qr._id, ...userFilter });
+      if (!allowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized: this QR code does not belong to your account',
+        });
+      }
     }
 
     const { title, description, style, expiresAt } = req.body;
@@ -264,6 +300,18 @@ export async function deleteQr(req, res, next) {
         success: false,
         error: 'QR code not found',
       });
+    }
+
+    // Role-based scope check
+    const userFilter = await getUserQrFilter(req.user);
+    if (userFilter) {
+      const allowed = await QRCode.exists({ _id: qr._id, ...userFilter });
+      if (!allowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized: this QR code does not belong to your account',
+        });
+      }
     }
 
     await logAuditAction({

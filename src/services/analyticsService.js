@@ -2,6 +2,7 @@ import useragent from 'useragent';
 import { QRScanLog } from '../models/QRScanLog.js';
 import { QRCode } from '../models/QRCode.js';
 import { getActiveBaseUrl } from '../utils/baseUrlHelper.js';
+import { getUserQrFilter, getUserQrIds } from '../utils/userQrScope.js';
 
 /**
  * Record a scan event asynchronously
@@ -57,21 +58,28 @@ export async function recordScan({ qrCodeId, publicCode, req, redirectStatus }) 
 /**
  * Get dashboard overview metrics
  */
-export async function getDashboardOverview() {
+export async function getDashboardOverview(user = null) {
+  const userFilter = user ? await getUserQrFilter(user) : null;
+  const qrBaseFilter = userFilter || {};
+  const userQrIds = userFilter ? await getUserQrIds(user) : null;
+  const scanBaseFilter = userQrIds ? { qrCodeId: { $in: userQrIds } } : {};
+
   const [totalQr, activeQr, unassignedQr, disabledQr, expiredQr] = await Promise.all([
-    QRCode.countDocuments(),
-    QRCode.countDocuments({ status: 'ACTIVE' }),
-    QRCode.countDocuments({ status: 'UNASSIGNED' }),
-    QRCode.countDocuments({ status: 'DISABLED' }),
-    QRCode.countDocuments({ status: 'EXPIRED' }),
+    QRCode.countDocuments(qrBaseFilter),
+    QRCode.countDocuments({ ...qrBaseFilter, status: 'ACTIVE' }),
+    QRCode.countDocuments({ ...qrBaseFilter, status: 'UNASSIGNED' }),
+    QRCode.countDocuments({ ...qrBaseFilter, status: 'DISABLED' }),
+    QRCode.countDocuments({ ...qrBaseFilter, status: 'EXPIRED' }),
   ]);
 
   const assignedCount = await QRCode.countDocuments({
+    ...qrBaseFilter,
     status: { $in: ['ACTIVE', 'DISABLED'] },
     'assignedTo.customerName': { $ne: '' },
   });
 
   const totalScansResult = await QRCode.aggregate([
+    ...(userFilter ? [{ $match: userFilter }] : []),
     { $group: { _id: null, totalScans: { $sum: '$scanCount' } } },
   ]);
   const totalScans = totalScansResult[0]?.totalScans || 0;
@@ -81,6 +89,7 @@ export async function getDashboardOverview() {
   startOfToday.setHours(0, 0, 0, 0);
 
   const todayScans = await QRScanLog.countDocuments({
+    ...scanBaseFilter,
     scannedAt: { $gte: startOfToday },
     redirectStatus: 'SUCCESS',
   });
@@ -91,7 +100,7 @@ export async function getDashboardOverview() {
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
   const dailyScansRaw = await QRScanLog.aggregate([
-    { $match: { scannedAt: { $gte: sevenDaysAgo }, redirectStatus: 'SUCCESS' } },
+    { $match: { ...scanBaseFilter, scannedAt: { $gte: sevenDaysAgo }, redirectStatus: 'SUCCESS' } },
     {
       $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$scannedAt' } },
@@ -122,11 +131,13 @@ export async function getDashboardOverview() {
 
   // Device breakdown
   const deviceStats = await QRScanLog.aggregate([
+    ...(userQrIds ? [{ $match: { qrCodeId: { $in: userQrIds } } }] : []),
     { $group: { _id: '$deviceType', count: { $sum: 1 } } },
   ]);
 
   // Browser breakdown
   const browserStats = await QRScanLog.aggregate([
+    ...(userQrIds ? [{ $match: { qrCodeId: { $in: userQrIds } } }] : []),
     { $group: { _id: '$browser', count: { $sum: 1 } } },
     { $sort: { count: -1 } },
     { $limit: 5 },
@@ -134,7 +145,10 @@ export async function getDashboardOverview() {
 
   // Top 5 scanned QR Codes
   const baseUrl = await getActiveBaseUrl();
-  const topQrsRaw = await QRCode.find({ scanCount: { $gt: 0 } })
+  const topQrsRaw = await QRCode.find({
+    ...qrBaseFilter,
+    scanCount: { $gt: 0 },
+  })
     .sort({ scanCount: -1 })
     .limit(5)
     .select('title publicCode destinationUrl scanCount status');
