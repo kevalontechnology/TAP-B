@@ -29,7 +29,7 @@ export const registerSchema = z.object({
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().min(3, 'Please enter your registered email address or username'),
 });
 
 export const resetPasswordSchema = z.object({

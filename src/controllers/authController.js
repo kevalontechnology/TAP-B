@@ -234,13 +234,16 @@ export async function changePassword(req, res, next) {
 export async function forgotPassword(req, res, next) {
   try {
     const validated = forgotPasswordSchema.parse(req.body);
-    const user = await User.findOne({ email: validated.email.toLowerCase() });
+    const identifier = validated.email.trim().toLowerCase();
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
 
     if (!user) {
       // Don't disclose if email exists for privacy/security
       return res.status(200).json({
         success: true,
-        message: 'If the email exists, a password reset instruction has been sent.',
+        message: 'If the account exists, a password reset instruction has been sent.',
       });
     }
 
