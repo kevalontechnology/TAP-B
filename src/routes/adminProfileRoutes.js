@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import {
   listAllProfiles,
+  getPendingQrProfiles,
   getAdminProfileById,
   createAdminProfile,
   updateAdminProfile,
@@ -14,6 +15,7 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole(['SUPER_ADMIN', 'ADMIN']));
 
+router.get('/pending-qr', getPendingQrProfiles);
 router.get('/', listAllProfiles);
 router.post('/', createAdminProfile);
 router.get('/:id', getAdminProfileById);

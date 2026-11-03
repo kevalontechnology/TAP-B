@@ -5,6 +5,7 @@ export const createQrSchema = z.object({
   description: z.string().max(500).optional().default(''),
   destinationType: z.enum(['WEBSITE', 'TAPZY_PROFILE', 'KEVALON_PROFILE', 'CUSTOM_DATA']).optional().default('KEVALON_PROFILE'),
   destinationUrl: z.string().optional().default(''),
+  profileId: z.string().optional(),
   customData: z.any().optional().default(null),
   expiresAt: z.string().datetime().nullable().optional(),
   style: z

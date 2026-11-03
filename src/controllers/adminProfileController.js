@@ -141,6 +141,49 @@ export async function listAllProfiles(req, res, next) {
 }
 
 /**
+ * GET /api/admin/profiles/pending-qr
+ * Retrieve all profiles that do not have a QR code assigned / cardLinked is false
+ */
+export async function getPendingQrProfiles(req, res, next) {
+  try {
+    const baseUrl = await getActiveProfileBaseUrl(req);
+
+    const pendingProfiles = await DigitalProfile.find({
+      $or: [
+        { linkedQrCode: { $in: [null, ''] } },
+        { linkedQrCode: { $exists: false } },
+        { cardLinked: false },
+      ],
+    })
+      .populate('userId', 'name email role phone')
+      .sort({ createdAt: -1 });
+
+    const formatted = pendingProfiles.map((p) => ({
+      _id: p._id,
+      userId: p.userId?._id,
+      userName: p.userId?.name || 'Unknown User',
+      userEmail: p.userId?.email || '',
+      userPhone: p.userId?.phone || p.mobileNumber || '',
+      fullName: p.fullName || p.userId?.name || 'Unnamed Profile',
+      username: p.username,
+      profileType: p.profileType || 'PERSONAL',
+      profileUrl: `${baseUrl}/${p.username}`,
+      destinationUrl: `${baseUrl}/${p.username}`,
+      linkedQrCode: p.linkedQrCode || '',
+      cardLinked: !!p.cardLinked,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: formatted,
+      total: formatted.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /api/admin/profiles/:id
  * Retrieve profile details for Admin
  */

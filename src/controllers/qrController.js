@@ -1,6 +1,7 @@
 import { QRCode } from '../models/QRCode.js';
 import { QRBatch } from '../models/QRBatch.js';
 import { QRAuditLog } from '../models/QRAuditLog.js';
+import { DigitalProfile } from '../models/DigitalProfile.js';
 import {
   createSingleQr,
   generateBulkQrs,
@@ -26,6 +27,18 @@ export async function create(req, res, next) {
   try {
     const validated = createQrSchema.parse(req.body);
     const qr = await createSingleQr(validated, req.user);
+
+    // If linked to a digital profile, automatically update the profile
+    if (validated.profileId) {
+      const profile = await DigitalProfile.findById(validated.profileId);
+      if (profile) {
+        profile.linkedQrCode = qr.publicCode;
+        profile.cardLinked = true;
+        profile.cardLinkedAt = new Date();
+        await profile.save();
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: 'QR Code created successfully',
