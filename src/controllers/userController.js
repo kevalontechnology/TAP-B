@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { createUserSchema } from '../validators/authValidator.js';
+import { cascadeDeleteUser } from './authController.js';
 
 export async function listUsers(req, res, next) {
   try {
@@ -86,6 +87,36 @@ export async function toggleUserStatus(req, res, next) {
       success: true,
       message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
       data: user,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteUser(req, res, next) {
+  try {
+    const { id } = req.params;
+    const targetUser = await User.findById(id);
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    if (targetUser._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        error: 'You cannot delete your own account from user management',
+      });
+    }
+
+    await cascadeDeleteUser(id);
+
+    return res.status(200).json({
+      success: true,
+      message: `User "${targetUser.name}" and all associated digital profiles have been permanently deleted.`,
     });
   } catch (err) {
     next(err);

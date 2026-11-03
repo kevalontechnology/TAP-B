@@ -4,6 +4,9 @@ import crypto from 'crypto';
 import { User } from '../models/User.js';
 import { DigitalProfile } from '../models/DigitalProfile.js';
 import { PhoneOtp } from '../models/PhoneOtp.js';
+import { VisitorLead } from '../models/VisitorLead.js';
+import { ProfileAnalyticsEvent } from '../models/ProfileAnalyticsEvent.js';
+import { QRCode } from '../models/QRCode.js';
 import { config } from '../config/env.js';
 import {
   loginSchema,
@@ -292,19 +295,74 @@ export async function resetPassword(req, res, next) {
   }
 }
 
+/**
+ * Cascades complete deletion of a user and all associated data
+ * (DigitalProfiles, VisitorLeads, ProfileAnalyticsEvents, PhoneOtps, and unassigns QRCodes)
+ */
+export async function cascadeDeleteUser(userId) {
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  // 1. Find all profiles owned by this user
+  const profiles = await DigitalProfile.find({ userId });
+  const profileIds = profiles.map((p) => p._id);
+  const usernames = profiles.map((p) => p.username).filter(Boolean);
+
+  // 2. Permanently delete all profiles
+  await DigitalProfile.deleteMany({ userId });
+
+  // 3. Delete all visitor leads received by this user's profiles
+  await VisitorLead.deleteMany({
+    $or: [{ ownerId: userId }, { profileId: { $in: profileIds } }],
+  });
+
+  // 4. Delete all profile analytics events
+  await ProfileAnalyticsEvent.deleteMany({
+    $or: [{ ownerId: userId }, { profileId: { $in: profileIds } }],
+  });
+
+  // 5. Clean up any OTPs for this user's phone
+  if (user.phone) {
+    await PhoneOtp.deleteMany({ phone: user.phone });
+  }
+
+  // 6. Reset any QR codes assigned to this customer or pointing to their profiles
+  const profileUrlPatterns = usernames.map((u) => new RegExp(`/(p|profile)/${u}`, 'i'));
+  await QRCode.updateMany(
+    {
+      $or: [
+        { 'assignedTo.customerRefId': userId.toString() },
+        ...(user.phone ? [{ 'assignedTo.mobileNumber': user.phone }] : []),
+        ...(profileUrlPatterns.length > 0 ? [{ destinationUrl: { $in: profileUrlPatterns } }] : []),
+      ],
+    },
+    {
+      $set: {
+        status: 'UNASSIGNED',
+        destinationUrl: '',
+        'assignedTo.customerName': '',
+        'assignedTo.mobileNumber': '',
+        'assignedTo.customerRefId': '',
+        'assignedTo.note': '',
+        assignedAt: null,
+      },
+    }
+  );
+
+  // 7. Permanently delete the user document
+  await User.findByIdAndDelete(userId);
+
+  return user;
+}
+
 export async function deleteAccount(req, res, next) {
   try {
     const userId = req.user._id;
-    // Deactivate user account
-    req.user.isActive = false;
-    await req.user.save();
-
-    // Deactivate all associated profiles
-    await DigitalProfile.updateMany({ userId }, { isActive: false, isPublic: false });
+    await cascadeDeleteUser(userId);
 
     return res.status(200).json({
       success: true,
-      message: 'Account and associated profiles have been deactivated successfully.',
+      message: 'Your account and all associated digital profiles have been permanently deleted.',
     });
   } catch (err) {
     next(err);
