@@ -44,3 +44,14 @@ export const createUserSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   role: z.enum(['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CUSTOMER']).default('CUSTOMER'),
 });
+
+export const updateUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').trim().optional(),
+  username: z.string().min(3).max(30).regex(/^[a-z0-9_-]+$/i, 'Username must be alphanumeric, dashes, or underscores').optional(),
+  email: z.string().email('Please enter a valid email address').optional(),
+  phone: z.string().optional(),
+  avatarUrl: z.string().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN', 'STAFF', 'CUSTOMER']).optional(),
+  isActive: z.boolean().optional(),
+});
