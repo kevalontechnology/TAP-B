@@ -24,22 +24,11 @@ export async function requireAuth(req, res, next) {
       token = req.headers['x-access-token'];
     }
 
-    // 4. In development mode, auto-fallback to seeded admin if no token provided or dev-token
+    // 4. Token validation: must be present and cannot be a dummy token
     if (!token || token === 'dev-token') {
-      if (config.env === 'development') {
-        const devUser =
-          (await User.findOne({ email: { $in: ['admin@kevalon.com', 'admin@tapzy.in'] } })) ||
-          (await User.findOne({ role: { $in: ['SUPER_ADMIN', 'ADMIN', 'admin'] } })) ||
-          (await User.findOne());
-        if (devUser) {
-          req.user = devUser;
-          return next();
-        }
-      }
-
       return res.status(401).json({
         success: false,
-        error: 'Authentication token required',
+        error: 'Authentication token required. Please log in.',
       });
     }
 
@@ -69,15 +58,6 @@ export async function requireAuth(req, res, next) {
         success: false,
         error: 'Session expired. Please log in again.',
       });
-    }
-
-    // In development mode, fallback to dev admin on invalid token instead of breaking
-    if (config.env === 'development') {
-      const devUser = await User.findOne({ email: { $in: ['admin@kevalon.com', 'admin@tapzy.in'] } });
-      if (devUser) {
-        req.user = devUser;
-        return next();
-      }
     }
 
     return res.status(401).json({
