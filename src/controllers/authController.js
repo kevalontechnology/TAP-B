@@ -324,7 +324,7 @@ function normalizePhone(rawPhone = '') {
 
 /**
  * POST /api/auth/send-otp
- * Generates and sends OTP to user's mobile number
+ * Generates and sends OTP to user's registered mobile number
  */
 export async function sendPhoneOtp(req, res, next) {
   try {
@@ -335,14 +335,6 @@ export async function sendPhoneOtp(req, res, next) {
       return res.status(400).json({
         success: false,
         error: 'Please enter a valid 10-digit mobile number',
-      });
-    }
-
-    const candidateName = typeof name === 'string' ? name.trim() : '';
-    if (!candidateName || candidateName.length < 2) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please enter your registered Full Name',
       });
     }
 
@@ -369,15 +361,16 @@ export async function sendPhoneOtp(req, res, next) {
       });
     }
 
-    // Compare name (case-insensitive, normalizing whitespace)
-    const normalizedCandidate = candidateName.replace(/\s+/g, ' ').toLowerCase();
-    const normalizedExisting = String(existingUser.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
-
-    if (normalizedCandidate !== normalizedExisting) {
-      return res.status(400).json({
-        success: false,
-        error: 'The entered Full Name does not match our records for this mobile number.',
-      });
+    // If name is optionally provided, verify it
+    if (name && typeof name === 'string' && name.trim().length >= 2) {
+      const normalizedCandidate = name.trim().replace(/\s+/g, ' ').toLowerCase();
+      const normalizedExisting = String(existingUser.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      if (normalizedCandidate !== normalizedExisting) {
+        return res.status(400).json({
+          success: false,
+          error: 'The entered Full Name does not match our records for this mobile number.',
+        });
+      }
     }
 
     // Generate 6-digit OTP
@@ -398,6 +391,7 @@ export async function sendPhoneOtp(req, res, next) {
       success: true,
       message: `OTP sent successfully to +91 ${cleanPhone}`,
       phone: cleanPhone,
+      existingName: existingUser?.name || '',
       demoOtp: config.env !== 'production' ? otp : undefined,
       expiresInSeconds: 300,
     });
@@ -448,10 +442,9 @@ export async function verifyPhoneOtp(req, res, next) {
       });
     }
 
-    // 2. Verify candidate name matches registered user's name
-    const candidateName = typeof name === 'string' ? name.trim() : '';
-    if (candidateName) {
-      const normalizedCandidate = candidateName.replace(/\s+/g, ' ').toLowerCase();
+    // Optional name check if passed
+    if (name && typeof name === 'string' && name.trim().length >= 2) {
+      const normalizedCandidate = name.trim().replace(/\s+/g, ' ').toLowerCase();
       const normalizedRegistered = String(user.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
       if (normalizedCandidate !== normalizedRegistered) {
@@ -462,7 +455,7 @@ export async function verifyPhoneOtp(req, res, next) {
       }
     }
 
-    // 3. Verify OTP against database or development fallback (123456)
+    // 2. Verify OTP against database or development fallback (123456)
     const trimmedOtp = String(otp).trim();
     const storedOtp = await PhoneOtp.findOne({ phone: cleanPhone });
     const isDevFallback = config.env !== 'production' && trimmedOtp === '123456';
@@ -475,7 +468,7 @@ export async function verifyPhoneOtp(req, res, next) {
       });
     }
 
-    // 4. Clear OTP only after successful verification
+    // 3. Clear OTP after successful verification
     if (storedOtp) {
       await PhoneOtp.deleteOne({ _id: storedOtp._id });
     }
