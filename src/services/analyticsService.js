@@ -143,15 +143,28 @@ export async function getDashboardOverview(user = null) {
     { $limit: 5 },
   ]);
 
-  // Top 5 scanned QR Codes
+  // Top performing dynamic QR Codes / Standees (up to 4 items)
   const baseUrl = await getActiveBaseUrl();
-  const topQrsRaw = await QRCode.find({
+  let topQrsRaw = await QRCode.find({
     ...qrBaseFilter,
     scanCount: { $gt: 0 },
   })
-    .sort({ scanCount: -1 })
-    .limit(5)
+    .sort({ scanCount: -1, updatedAt: -1 })
+    .limit(4)
     .select('title publicCode destinationUrl scanCount status');
+
+  // If fewer than 4 with scans, fill up to 4 with other available QR codes
+  if (!topQrsRaw || topQrsRaw.length < 4) {
+    const existingIds = (topQrsRaw || []).map((q) => q._id);
+    const additionalQrs = await QRCode.find({
+      ...qrBaseFilter,
+      _id: { $nin: existingIds },
+    })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(4 - (topQrsRaw ? topQrsRaw.length : 0))
+      .select('title publicCode destinationUrl scanCount status');
+    topQrsRaw = [...(topQrsRaw || []), ...additionalQrs];
+  }
 
   const topQrs = topQrsRaw.map((qr) => ({
     ...qr.toJSON(),
@@ -173,6 +186,7 @@ export async function getDashboardOverview(user = null) {
     deviceStats: deviceStats.map((d) => ({ name: d._id || 'Unknown', value: d.count })),
     browserStats: browserStats.map((b) => ({ name: b._id || 'Unknown', value: b.count })),
     topQrs,
+    topScanned: topQrs,
   };
 }
 
