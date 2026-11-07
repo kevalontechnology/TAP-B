@@ -689,23 +689,21 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
         }
 
         <div class="grid grid-cols-3 gap-2 pt-1 text-center">
-          <a href="upi://pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+          <a href="upi://pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" onclick="window.location.href='tez://upi/pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; setTimeout(function(){ window.location.href='upi://pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
             <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-sky-400 mb-1">G</span>
             <span class="text-[10px] font-bold text-slate-200">Google Pay</span>
           </a>
-          <a href="phonepe://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+          <a href="phonepe://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" onclick="window.location.href='phonepe://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; setTimeout(function(){ window.location.href='upi://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
             <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-purple-400 mb-1">P</span>
             <span class="text-[10px] font-bold text-slate-200">PhonePe</span>
           </a>
-          <a href="paytmmp://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+          <a href="paytmmp://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" onclick="window.location.href='paytmmp://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; setTimeout(function(){ window.location.href='upi://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
             <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-blue-400 mb-1">Pay</span>
             <span class="text-[10px] font-bold text-slate-200">Paytm</span>
           </a>
         </div>
       </div>`;
             })()
-          : ''
-      }
           : ''
       }
 
@@ -746,17 +744,29 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
   </div>
 
   <!-- 14. Fixed Floating Action Bar (Bottom of Screen) -->
-  <div class="fixed bottom-0 inset-x-0 max-w-[420px] mx-auto p-3.5 bg-[#06080d]/90 backdrop-blur-xl border-t border-slate-800/80 flex items-center gap-3 z-50">
+  <div class="fixed bottom-0 inset-x-0 max-w-[420px] mx-auto p-3.5 bg-[#06080d]/90 backdrop-blur-xl border-t border-slate-800/80 flex items-center gap-2.5 z-50">
     <!-- Save Contact Button (Dynamic Theme Gradient) -->
-    <a href="${vcfUrl}" download class="flex-1 py-3 px-4 rounded-full font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer" style="background: ${theme.gradient}; color: ${theme.buttonText}; box-shadow: ${theme.glowShadow};">
+    <a href="${vcfUrl}" download class="flex-1 py-3 px-3 rounded-full font-black text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer truncate" style="background: ${theme.gradient}; color: ${theme.buttonText}; box-shadow: ${theme.glowShadow};">
       ${ICONS.download}
       <span>Save Contact</span>
     </a>
 
+    ${
+      profile.upiId || profile.googlePay || profile.phonePe || profile.paytm
+        ? `
+    <button type="button" onclick="window.location.href='upi://pay?pa=${encodeURIComponent(
+      (profile.upiId || profile.googlePay || profile.phonePe || profile.paytm || '').replace(/^\d{10}$/, (d) => d + '@upi')
+    )}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR'; document.getElementById('payment-section')?.scrollIntoView({behavior:'smooth'});" class="flex-1 py-3 px-3 rounded-full font-black text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 active:scale-95 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md truncate">
+      ${ICONS.creditCard}
+      <span>Pay Now</span>
+    </button>`
+        : ''
+    }
+
     <!-- Share Contact Button (Dark Obsidian Pill) -->
-    <button type="button" id="share-contact-btn" class="flex-1 py-3 px-4 rounded-full font-black text-xs text-white bg-[#101522] border border-slate-700/80 hover:bg-[#182033] active:scale-95 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md">
+    <button type="button" id="share-contact-btn" class="py-3 px-3.5 rounded-full font-black text-xs text-white bg-[#101522] border border-slate-700/80 hover:bg-[#182033] active:scale-95 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0">
       ${ICONS.share}
-      <span>Share Contact</span>
+      <span>Share</span>
     </button>
   </div>
 
