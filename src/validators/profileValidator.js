@@ -92,6 +92,42 @@ const strictNumericPrice = z
   .optional()
   .default('');
 
+// Strict UPI ID validator: alphanumeric and standard handles (e.g. name@okhdfcbank, 9876543210@ybl)
+const strictOptionalUpiId = z
+  .string()
+  .trim()
+  .refine(
+    (val) => {
+      if (!val) return true;
+      return /^[a-zA-Z0-9.\-_]{2,64}@[a-zA-Z0-9]{2,64}$/.test(val);
+    },
+    {
+      message: 'Must be a valid UPI ID (e.g. yourname@okhdfcbank or 9876543210@ybl)',
+    }
+  )
+  .transform((val) => (val ? val.toLowerCase() : ''))
+  .optional()
+  .default('');
+
+// Optional Payment Handle (UPI ID or 10-digit mobile number)
+const strictOptionalPaymentHandle = z
+  .string()
+  .trim()
+  .refine(
+    (val) => {
+      if (!val) return true;
+      const digits = val.replace(/\D/g, '');
+      const is10Digit = digits.length === 10 || (digits.length === 12 && digits.startsWith('91'));
+      const isUpi = /^[a-zA-Z0-9.\-_]{2,64}@[a-zA-Z0-9]{2,64}$/.test(val);
+      return is10Digit || isUpi;
+    },
+    {
+      message: 'Must be a valid UPI ID or 10-digit mobile number',
+    }
+  )
+  .optional()
+  .default('');
+
 export const createProfileSchema = z.object({
   userId: z.string().optional(),
   profileType: z.enum(['PERSONAL', 'BUSINESS', 'EMPLOYEE', 'CUSTOM']).optional().default('CUSTOM'),
@@ -200,6 +236,13 @@ export const createProfileSchema = z.object({
     .optional()
     .default([]),
   brochureUrl: strictOptionalUrl,
+
+  // Payment & UPI Configuration
+  upiId: strictOptionalUpiId,
+  googlePay: strictOptionalPaymentHandle,
+  phonePe: strictOptionalPaymentHandle,
+  paytm: strictOptionalPaymentHandle,
+  paymentQrImage: z.string().optional().default(''),
 
   // Settings
   saveContactVcf: z.boolean().optional().default(true),

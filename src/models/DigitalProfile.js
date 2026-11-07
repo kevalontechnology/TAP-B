@@ -207,6 +207,34 @@ const digitalProfileSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Payment & UPI Configuration (Google Pay, PhonePe, Paytm, Custom QR)
+    upiId: {
+      type: String,
+      default: '',
+      trim: true,
+      lowercase: true,
+    },
+    googlePay: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    phonePe: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    paytm: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    paymentQrImage: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+
     // Profile Settings
     saveContactVcf: {
       type: Boolean,

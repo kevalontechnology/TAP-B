@@ -624,22 +624,67 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           : ''
       }
 
-      <!-- 11. Payment Options Accordion (Collapsible) -->
-      <div class="rounded-2xl bg-[#0f1420] border border-slate-800/80 overflow-hidden shadow-lg">
-        <button type="button" onclick="document.getElementById('payment-accordion-body').classList.toggle('hidden');" class="w-full p-4 flex items-center justify-between text-left cursor-pointer hover:bg-white/5 transition-colors">
+      <!-- 11. Payment Options (Google Pay, PhonePe, Paytm, UPI) -->
+      ${
+        profile.upiId || profile.googlePay || profile.phonePe || profile.paytm || profile.paymentQrImage
+          ? `
+      <div id="payment-section" class="rounded-2xl bg-[#0f1420] border border-slate-800/80 p-4 space-y-4 shadow-xl">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
           <div class="flex items-center gap-2.5">
-            <span class="w-7 h-7 rounded-lg flex items-center justify-center" style="background-color: ${theme.rgba(0.15)}; border: 1px solid ${theme.rgba(0.3)}; color: ${theme.primary};">
+            <span class="w-8 h-8 rounded-xl flex items-center justify-center font-bold" style="background-color: ${theme.rgba(0.15)}; border: 1px solid ${theme.rgba(0.3)}; color: ${theme.primary};">
               ${ICONS.creditCard}
             </span>
-            <span class="text-xs font-bold text-white">Payment Options</span>
+            <div>
+              <span class="text-xs font-bold text-white block">Instant UPI & Online Payments</span>
+              <span class="text-[10px] text-slate-400">Google Pay, PhonePe, Paytm & All UPI Apps</span>
+            </div>
           </div>
-          ${ICONS.chevronDown}
-        </button>
-        <div id="payment-accordion-body" class="hidden p-4 pt-1 border-t border-slate-800/80 text-xs text-slate-300 space-y-2">
-          <p class="text-[11px] text-slate-400">UPI & Direct Bank Transfer available upon inquiry.</p>
-          ${mobile ? `<p class="font-mono text-xs" style="color: ${theme.primary};">UPI: ${mobile}@upi</p>` : ''}
         </div>
-      </div>
+
+        ${
+          profile.paymentQrImage || profile.upiId
+            ? `
+        <div class="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-slate-800/70 text-center space-y-2">
+          <div class="w-44 h-44 bg-white p-2 rounded-2xl shadow-md flex items-center justify-center overflow-hidden">
+            <img src="${profile.paymentQrImage || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${profile.upiId || ''}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR`)}&margin=10`}" alt="Payment QR Code" class="w-full h-full object-contain" />
+          </div>
+          <span class="text-[11px] text-slate-400 font-medium">Scan with any UPI app to pay instantly</span>
+        </div>`
+            : ''
+        }
+
+        ${
+          profile.upiId
+            ? `
+        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 text-xs">
+          <div class="truncate mr-2">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">UPI ID</span>
+            <span class="font-mono font-bold text-white text-xs truncate block">${profile.upiId}</span>
+          </div>
+          <button type="button" onclick="navigator.clipboard.writeText('${profile.upiId}'); alert('UPI ID copied to clipboard!');" class="px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer" style="background-color: ${theme.rgba(0.2)}; color: ${theme.primary}; border: 1px solid ${theme.rgba(0.3)};">
+            Copy
+          </button>
+        </div>`
+            : ''
+        }
+
+        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+          <a href="upi://pay?pa=${encodeURIComponent(profile.googlePay || profile.upiId || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-sky-400 mb-1">G</span>
+            <span class="text-[10px] font-bold text-slate-200">Google Pay</span>
+          </a>
+          <a href="phonepe://pay?pa=${encodeURIComponent(profile.phonePe || profile.upiId || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-purple-400 mb-1">P</span>
+            <span class="text-[10px] font-bold text-slate-200">PhonePe</span>
+          </a>
+          <a href="paytmmp://pay?pa=${encodeURIComponent(profile.paytm || profile.upiId || '')}&pn=${encodeURIComponent(fullName || 'Merchant')}&cu=INR" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-blue-400 mb-1">Pay</span>
+            <span class="text-[10px] font-bold text-slate-200">Paytm</span>
+          </a>
+        </div>
+      </div>`
+          : ''
+      }
 
     </div>
 
