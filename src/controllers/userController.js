@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { createUserSchema, updateUserSchema } from '../validators/authValidator.js';
 import { cascadeDeleteUser } from './authController.js';
+import { ensureUserQrCode } from '../services/userQrService.js';
 
 export async function listUsers(req, res, next) {
   try {
@@ -137,6 +138,9 @@ export async function createUser(req, res, next) {
       role: validated.role,
       isActive: true,
     });
+
+    // Ensure 1 permanent QR code is generated for this user account
+    await ensureUserQrCode(user, req);
 
     return res.status(201).json({
       success: true,

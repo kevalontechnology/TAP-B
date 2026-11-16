@@ -4,6 +4,8 @@ import { recordScan } from '../services/analyticsService.js';
 import { logAuditAction } from '../services/auditService.js';
 import { validateDestinationSafety } from '../utils/urlSafety.js';
 import { config } from '../config/env.js';
+import { getActiveProfileForUser } from '../services/userQrService.js';
+import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
 
 /**
  * Render a branded HTML status page for non-active or error QR states
@@ -520,8 +522,21 @@ export async function handleRedirect(req, res) {
       );
     }
 
-    // 5. Active - Validate Destination
-    if (!qr.destinationUrl || qr.destinationUrl.trim() === '') {
+    // 5. Active - Resolve Dynamic Target Destination
+    let destinationUrl = qr.destinationUrl ? qr.destinationUrl.trim() : '';
+
+    if (qr.destinationType === 'KEVALON_PROFILE' || qr.assignedTo?.customerRefId || qr.createdBy) {
+      const userId = qr.assignedTo?.customerRefId || qr.createdBy;
+      if (userId) {
+        const activeProfile = await getActiveProfileForUser(userId);
+        if (activeProfile) {
+          const profileBaseUrl = await getActiveProfileBaseUrl(req);
+          destinationUrl = `${profileBaseUrl}/${activeProfile.username}`;
+        }
+      }
+    }
+
+    if (!destinationUrl) {
       await recordScan({
         qrCodeId: qr._id,
         publicCode,
@@ -529,19 +544,19 @@ export async function handleRedirect(req, res) {
         redirectStatus: 'INVALID_DESTINATION',
       });
 
-      return res.status(400).send(
+      return res.status(200).send(
         renderBrandedStatusPage({
-          title: 'Destination Not Configured',
-          badge: { text: 'Missing URL', color: 'bg-red-500/10 text-red-400 border border-red-500/20' },
-          message: 'This QR code is marked active but has no destination URL configured.',
-          helpText: 'Please update the destination URL in the KevalonTap Dashboard.',
-          iconType: 'error',
+          title: 'Profile In Setup',
+          badge: { text: 'Card Registered', color: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+          message: `This KevalonTap Smart Card is registered to ${qr.assignedTo?.customerName || 'our customer'}. The digital profile is being set up and will be live shortly.`,
+          helpText: 'If this is your card, please log in to your KevalonTap Dashboard to create and activate your profile.',
+          iconType: 'clock',
         })
       );
     }
 
     // Re-verify URL safety before redirect
-    const safety = validateDestinationSafety(qr.destinationUrl);
+    const safety = validateDestinationSafety(destinationUrl);
     if (!safety.safe) {
       await recordScan({
         qrCodeId: qr._id,

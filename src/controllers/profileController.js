@@ -1,10 +1,12 @@
 import QRCodeLib from 'qrcode';
+import { User } from '../models/User.js';
 import { DigitalProfile } from '../models/DigitalProfile.js';
 import { ProfileAnalyticsEvent } from '../models/ProfileAnalyticsEvent.js';
 import { VisitorLead } from '../models/VisitorLead.js';
 import { QRCode } from '../models/QRCode.js';
-import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
+import { getActiveProfileBaseUrl, getActiveBaseUrl } from '../utils/baseUrlHelper.js';
 import { createProfileSchema, updateProfileSchema } from '../validators/profileValidator.js';
+import { ensureUserQrCode, syncUserQrDestination } from '../services/userQrService.js';
 
 /**
  * Format profile with public URL and computed metrics
@@ -144,14 +146,22 @@ export async function createProfile(req, res, next) {
         ? false
         : true;
 
+    // Ensure user has their permanent 1 Smart Card QR code
+    const user = await User.findById(targetUserId);
+    const userQr = user ? await ensureUserQrCode(user, req) : null;
+
     const newProfile = await DigitalProfile.create({
       ...validated,
       username: validated.username.toLowerCase(),
       userId: targetUserId,
       isDefault,
       isActive: initialActive,
-      cardLinked: Boolean(validated.cardLinked),
+      cardLinked: Boolean(validated.cardLinked || userQr),
+      linkedQrCode: userQr?.publicCode || validated.linkedQrCode || '',
     });
+
+    // Synchronize user QR destination to the active profile
+    await syncUserQrDestination(targetUserId, req);
 
     const formatted = await formatProfile(newProfile, req);
     return res.status(201).json({
@@ -245,6 +255,7 @@ export async function updateProfile(req, res, next) {
     });
 
     await profile.save();
+    await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
     return res.status(200).json({
@@ -288,6 +299,7 @@ export async function toggleStatus(req, res, next) {
     }
 
     await profile.save();
+    await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
     return res.status(200).json({
@@ -379,6 +391,7 @@ export async function deleteProfile(req, res, next) {
       remaining.isDefault = true;
       await remaining.save();
     }
+    await syncUserQrDestination(req.user._id, req);
 
     return res.status(200).json({
       success: true,
@@ -405,8 +418,16 @@ export async function getProfileQr(req, res, next) {
       });
     }
 
-    const baseUrl = await getActiveProfileBaseUrl(req);
-    const publicUrl = `${baseUrl}/${profile.username}`;
+    // Retrieve the user owner and their single permanent Smart Card QR code
+    const user = await User.findById(profile.userId);
+    const userQr = user ? await ensureUserQrCode(user, req) : null;
+
+    const shortBaseUrl = await getActiveBaseUrl(req);
+    const profileBaseUrl = await getActiveProfileBaseUrl(req);
+
+    // Encode the permanent Smart Card link so that the physical QR code is 100% identical for all profiles
+    const publicUrl = userQr ? `${shortBaseUrl}/q/${userQr.publicCode}` : `${profileBaseUrl}/${profile.username}`;
+    const liveProfileUrl = `${profileBaseUrl}/${profile.username}`;
 
     const qrDataUrl = await QRCodeLib.toDataURL(publicUrl, {
       errorCorrectionLevel: 'H',
@@ -432,6 +453,9 @@ export async function getProfileQr(req, res, next) {
       success: true,
       data: {
         publicUrl,
+        liveProfileUrl,
+        userCode: userQr?.publicCode || '',
+        isUniversalQr: true,
         qrDataUrl,
         qrSvg,
         profile: {
@@ -623,6 +647,7 @@ export async function addCardToProfile(req, res, next) {
     if (linkedQrCode) profile.linkedQrCode = linkedQrCode.trim();
 
     await profile.save();
+    await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
     return res.status(200).json({
@@ -657,6 +682,7 @@ export async function toggleCardStatus(req, res, next) {
 
     profile.isActive = !profile.isActive;
     await profile.save();
+    await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
     return res.status(200).json({
@@ -716,6 +742,7 @@ export async function linkQrToCard(req, res, next) {
     }
 
     await profile.save();
+    await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
     return res.status(200).json({

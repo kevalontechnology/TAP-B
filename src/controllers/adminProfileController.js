@@ -5,6 +5,7 @@ import { VisitorLead } from '../models/VisitorLead.js';
 import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
 import { createProfileSchema, updateProfileSchema } from '../validators/profileValidator.js';
 import { logAuditAction } from '../services/auditService.js';
+import { ensureUserQrCode, syncUserQrDestination } from '../services/userQrService.js';
 
 /**
  * Format profile with public URL and computed telemetry metrics
@@ -260,12 +261,20 @@ export async function createAdminProfile(req, res, next) {
       await DigitalProfile.updateMany({ userId: targetUserId }, { isDefault: false });
     }
 
+    // Ensure target user has their permanent Smart Card QR code
+    const targetUser = await User.findById(targetUserId);
+    const userQr = targetUser ? await ensureUserQrCode(targetUser, req) : null;
+
     const newProfile = await DigitalProfile.create({
       ...validated,
       username: normalizedUsername,
       userId: targetUserId,
       isDefault,
+      cardLinked: Boolean(validated.cardLinked || userQr),
+      linkedQrCode: userQr?.publicCode || validated.linkedQrCode || '',
     });
+
+    await syncUserQrDestination(targetUserId, req);
 
     await logAuditAction({
       action: 'ADMIN_CREATED_PROFILE',
@@ -369,6 +378,7 @@ export async function updateAdminProfile(req, res, next) {
     });
 
     await profile.save();
+    await syncUserQrDestination(profile.userId, req);
 
     await logAuditAction({
       action: 'ADMIN_UPDATED_PROFILE',
@@ -427,6 +437,8 @@ export async function deleteAdminProfile(req, res, next) {
       },
       performedBy: req.user._id,
     });
+
+    await syncUserQrDestination(oldValue.userId, req);
 
     return res.status(200).json({
       success: true,

@@ -60,6 +60,17 @@ const userSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    qrCodeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'QRCode',
+      default: null,
+    },
+    userCode: {
+      type: String,
+      default: '',
+      trim: true,
+      index: true,
+    },
     lastLogin: {
       type: Date,
       default: null,
