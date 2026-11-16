@@ -633,55 +633,53 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           : ''
       }
 
-      <!-- 11. Payment Options (Google Pay, PhonePe, Paytm, UPI) -->
-      ${
-        profile.upiId || profile.googlePay || profile.phonePe || profile.paytm || profile.paymentQrImage
-          ? (() => {
-              const activePaymentApps = [];
-              if (profile.googlePay && profile.googlePay.trim()) {
-                const handle = /^\d{10}$/.test(profile.googlePay.trim()) ? `${profile.googlePay.trim()}@okaxis` : profile.googlePay.trim();
-                activePaymentApps.push({
-                  name: 'Google Pay',
-                  badge: 'G',
-                  badgeColor: 'text-sky-400',
-                  url: `tez://upi/pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
-                  fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
-                });
-              }
-              if (profile.phonePe && profile.phonePe.trim()) {
-                const handle = /^\d{10}$/.test(profile.phonePe.trim()) ? `${profile.phonePe.trim()}@ybl` : profile.phonePe.trim();
-                activePaymentApps.push({
-                  name: 'PhonePe',
-                  badge: 'Pe',
-                  badgeColor: 'text-purple-400',
-                  url: `phonepe://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
-                  fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
-                });
-              }
-              if (profile.paytm && profile.paytm.trim()) {
-                const handle = /^\d{10}$/.test(profile.paytm.trim()) ? `${profile.paytm.trim()}@paytm` : profile.paytm.trim();
-                activePaymentApps.push({
-                  name: 'Paytm',
-                  badge: 'Pay',
-                  badgeColor: 'text-blue-400',
-                  url: `paytmmp://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
-                  fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
-                });
-              }
+      <!-- 11. Payment Options (Google Pay, PhonePe, Paytm) -->
+      ${(() => {
+        const activePaymentApps = [];
+        if (profile.googlePay && profile.googlePay.trim()) {
+          const handle = /^\d{10}$/.test(profile.googlePay.trim()) ? `${profile.googlePay.trim()}@okaxis` : profile.googlePay.trim();
+          activePaymentApps.push({
+            name: 'Google Pay',
+            badge: 'G',
+            badgeColor: 'text-sky-400',
+            url: `tez://upi/pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
+            fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
+          });
+        }
+        if (profile.phonePe && profile.phonePe.trim()) {
+          const handle = /^\d{10}$/.test(profile.phonePe.trim()) ? `${profile.phonePe.trim()}@ybl` : profile.phonePe.trim();
+          activePaymentApps.push({
+            name: 'PhonePe',
+            badge: 'Pe',
+            badgeColor: 'text-purple-400',
+            url: `phonepe://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
+            fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
+          });
+        }
+        if (profile.paytm && profile.paytm.trim()) {
+          const handle = /^\d{10}$/.test(profile.paytm.trim()) ? `${profile.paytm.trim()}@paytm` : profile.paytm.trim();
+          activePaymentApps.push({
+            name: 'Paytm',
+            badge: 'Pay',
+            badgeColor: 'text-blue-400',
+            url: `paytmmp://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
+            fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
+          });
+        }
 
-              const gridClass = activePaymentApps.length === 1
-                ? 'grid-cols-1'
-                : activePaymentApps.length === 2
-                ? 'grid-cols-2'
-                : 'grid-cols-3';
+        if (activePaymentApps.length === 0) return '';
 
-              const paymentSubtitle = activePaymentApps.length > 0
-                ? `${activePaymentApps.map((a) => a.name).join(', ')} & UPI`
-                : 'UPI & Instant QR Payments';
+        const gridClass = activePaymentApps.length === 1
+          ? 'grid-cols-1'
+          : activePaymentApps.length === 2
+          ? 'grid-cols-2'
+          : 'grid-cols-3';
 
-              return `
-      <div id="payment-section" class="rounded-2xl bg-[#0f1420] border border-slate-800/80 p-4 space-y-4 shadow-xl">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+        const paymentSubtitle = `${activePaymentApps.map((a) => a.name).join(', ')}`;
+
+        return `
+      <div id="payment-section" class="rounded-2xl bg-[#0f1420] border border-slate-800/80 p-4 space-y-3 shadow-xl">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
           <div class="flex items-center gap-2.5">
             <span class="w-8 h-8 rounded-xl flex items-center justify-center font-bold" style="background-color: ${theme.rgba(0.15)}; border: 1px solid ${theme.rgba(0.3)}; color: ${theme.primary};">
               ${ICONS.creditCard}
@@ -691,38 +689,11 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
               <span class="text-[10px] text-slate-400">${paymentSubtitle}</span>
             </div>
           </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Live Pay
+          </span>
         </div>
 
-        ${
-          profile.paymentQrImage || defaultUpi
-            ? `
-        <div class="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-slate-800/70 text-center space-y-2">
-          <div class="w-44 h-44 bg-white p-2 rounded-2xl shadow-md flex items-center justify-center overflow-hidden">
-            <img src="${profile.paymentQrImage || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${defaultUpi}&pn=${payeeName}&cu=INR`)}&margin=10`}" alt="Payment QR Code" class="w-full h-full object-contain" />
-          </div>
-          <span class="text-[11px] text-slate-400 font-medium">Scan with any UPI app to pay instantly</span>
-        </div>`
-            : ''
-        }
-
-        ${
-          defaultUpi
-            ? `
-        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 text-xs">
-          <div class="truncate mr-2">
-            <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">UPI ID</span>
-            <span class="font-mono font-bold text-white text-xs truncate block">${defaultUpi}</span>
-          </div>
-          <button type="button" onclick="navigator.clipboard.writeText('${defaultUpi}'); alert('UPI ID copied to clipboard!');" class="px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer" style="background-color: ${theme.rgba(0.2)}; color: ${theme.primary}; border: 1px solid ${theme.rgba(0.3)};">
-            Copy
-          </button>
-        </div>`
-            : ''
-        }
-
-        ${
-          activePaymentApps.length > 0
-            ? `
         <div class="grid ${gridClass} gap-2 pt-1 text-center">
           ${activePaymentApps
             .map(
@@ -733,13 +704,9 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           </a>`
             )
             .join('')}
-        </div>`
-            : ''
-        }
+        </div>
       </div>`;
-            })()
-          : ''
-      }
+      })()}
 
     </div>
 
