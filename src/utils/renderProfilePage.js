@@ -114,6 +114,14 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
   const theme = getThemePalette(profile.themeColor);
   const name = sanitizeHtml(profile.fullName || profile.username);
   const payeeName = encodeURIComponent(profile.fullName || profile.username || 'Merchant');
+
+  // Resolved primary UPI ID for instant payments
+  const defaultUpi =
+    (profile.googlePay && (/^\d{10}$/.test(profile.googlePay.trim()) ? `${profile.googlePay.trim()}@okaxis` : profile.googlePay.trim())) ||
+    (profile.phonePe && (/^\d{10}$/.test(profile.phonePe.trim()) ? `${profile.phonePe.trim()}@ybl` : profile.phonePe.trim())) ||
+    (profile.paytm && (/^\d{10}$/.test(profile.paytm.trim()) ? `${profile.paytm.trim()}@paytm` : profile.paytm.trim())) ||
+    (profile.upiId ? profile.upiId.trim() : '') ||
+    '';
   const designation = sanitizeHtml(profile.designation || '');
   const companyName = sanitizeHtml(profile.companyName || '');
   const companyLogo = resolveMedia(profile.companyLogo);
@@ -629,24 +637,47 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       ${
         profile.upiId || profile.googlePay || profile.phonePe || profile.paytm || profile.paymentQrImage
           ? (() => {
-              const defaultUpi =
-                profile.upiId ||
-                (profile.googlePay ? (/^\d{10}$/.test(profile.googlePay) ? `${profile.googlePay}@okaxis` : profile.googlePay) : '') ||
-                (profile.phonePe ? (/^\d{10}$/.test(profile.phonePe) ? `${profile.phonePe}@ybl` : profile.phonePe) : '') ||
-                (profile.paytm ? (/^\d{10}$/.test(profile.paytm) ? `${profile.paytm}@paytm` : profile.paytm) : '') ||
-                (mobile ? `${mobile}@upi` : '');
+              const activePaymentApps = [];
+              if (profile.googlePay && profile.googlePay.trim()) {
+                const handle = /^\d{10}$/.test(profile.googlePay.trim()) ? `${profile.googlePay.trim()}@okaxis` : profile.googlePay.trim();
+                activePaymentApps.push({
+                  name: 'Google Pay',
+                  badge: 'G',
+                  badgeColor: 'text-sky-400',
+                  url: `tez://upi/pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
+                  fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
+                });
+              }
+              if (profile.phonePe && profile.phonePe.trim()) {
+                const handle = /^\d{10}$/.test(profile.phonePe.trim()) ? `${profile.phonePe.trim()}@ybl` : profile.phonePe.trim();
+                activePaymentApps.push({
+                  name: 'PhonePe',
+                  badge: 'Pe',
+                  badgeColor: 'text-purple-400',
+                  url: `phonepe://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
+                  fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
+                });
+              }
+              if (profile.paytm && profile.paytm.trim()) {
+                const handle = /^\d{10}$/.test(profile.paytm.trim()) ? `${profile.paytm.trim()}@paytm` : profile.paytm.trim();
+                activePaymentApps.push({
+                  name: 'Paytm',
+                  badge: 'Pay',
+                  badgeColor: 'text-blue-400',
+                  url: `paytmmp://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
+                  fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
+                });
+              }
 
-              const gpayHandle = profile.googlePay
-                ? (/^\d{10}$/.test(profile.googlePay) ? `${profile.googlePay}@okaxis` : profile.googlePay)
-                : defaultUpi;
+              const gridClass = activePaymentApps.length === 1
+                ? 'grid-cols-1'
+                : activePaymentApps.length === 2
+                ? 'grid-cols-2'
+                : 'grid-cols-3';
 
-              const phonepeHandle = profile.phonePe
-                ? (/^\d{10}$/.test(profile.phonePe) ? `${profile.phonePe}@ybl` : profile.phonePe)
-                : defaultUpi;
-
-              const paytmHandle = profile.paytm
-                ? (/^\d{10}$/.test(profile.paytm) ? `${profile.paytm}@paytm` : profile.paytm)
-                : defaultUpi;
+              const paymentSubtitle = activePaymentApps.length > 0
+                ? `${activePaymentApps.map((a) => a.name).join(', ')} & UPI`
+                : 'UPI & Instant QR Payments';
 
               return `
       <div id="payment-section" class="rounded-2xl bg-[#0f1420] border border-slate-800/80 p-4 space-y-4 shadow-xl">
@@ -657,7 +688,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
             </span>
             <div>
               <span class="text-xs font-bold text-white block">Instant UPI & Online Payments</span>
-              <span class="text-[10px] text-slate-400">Google Pay, PhonePe, Paytm & All UPI Apps</span>
+              <span class="text-[10px] text-slate-400">${paymentSubtitle}</span>
             </div>
           </div>
         </div>
@@ -689,20 +720,22 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
             : ''
         }
 
-        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
-          <a href="upi://pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${payeeName}&cu=INR" onclick="window.location.href='tez://upi/pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${payeeName}&cu=INR'; setTimeout(function(){ window.location.href='upi://pay?pa=${encodeURIComponent(gpayHandle || '')}&pn=${payeeName}&cu=INR'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
-            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-sky-400 mb-1">G</span>
-            <span class="text-[10px] font-bold text-slate-200">Google Pay</span>
-          </a>
-          <a href="phonepe://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${payeeName}&cu=INR" onclick="window.location.href='phonepe://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${payeeName}&cu=INR'; setTimeout(function(){ window.location.href='upi://pay?pa=${encodeURIComponent(phonepeHandle || '')}&pn=${payeeName}&cu=INR'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
-            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-purple-400 mb-1">P</span>
-            <span class="text-[10px] font-bold text-slate-200">PhonePe</span>
-          </a>
-          <a href="paytmmp://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${payeeName}&cu=INR" onclick="window.location.href='paytmmp://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${payeeName}&cu=INR'; setTimeout(function(){ window.location.href='upi://pay?pa=${encodeURIComponent(paytmHandle || '')}&pn=${payeeName}&cu=INR'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
-            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs text-blue-400 mb-1">Pay</span>
-            <span class="text-[10px] font-bold text-slate-200">Paytm</span>
-          </a>
-        </div>
+        ${
+          activePaymentApps.length > 0
+            ? `
+        <div class="grid ${gridClass} gap-2 pt-1 text-center">
+          ${activePaymentApps
+            .map(
+              (app) => `
+          <a href="${app.fallbackUrl}" onclick="window.location.href='${app.url}'; setTimeout(function(){ window.location.href='${app.fallbackUrl}'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
+            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs ${app.badgeColor} mb-1">${app.badge}</span>
+            <span class="text-[10px] font-bold text-slate-200">${app.name}</span>
+          </a>`
+            )
+            .join('')}
+        </div>`
+            : ''
+        }
       </div>`;
             })()
           : ''
@@ -753,10 +786,10 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
     </a>
 
     ${
-      profile.upiId || profile.googlePay || profile.phonePe || profile.paytm
+      defaultUpi
         ? `
     <button type="button" onclick="window.location.href='upi://pay?pa=${encodeURIComponent(
-      (profile.upiId || profile.googlePay || profile.phonePe || profile.paytm || '').replace(/^\d{10}$/, (d) => d + '@upi')
+      defaultUpi
     )}&pn=${payeeName}&cu=INR'; document.getElementById('payment-section')?.scrollIntoView({behavior:'smooth'});" class="flex-1 py-3 px-3 rounded-full font-black text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 active:scale-95 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md truncate">
       ${ICONS.creditCard}
       <span>Pay Now</span>
