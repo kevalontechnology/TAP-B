@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { QRCode } from '../models/QRCode.js';
 import { QRRequest } from '../models/QRRequest.js';
 import { recordScan } from '../services/analyticsService.js';
@@ -6,6 +8,25 @@ import { validateDestinationSafety } from '../utils/urlSafety.js';
 import { config } from '../config/env.js';
 import { getActiveProfileForUser } from '../services/userQrService.js';
 import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
+
+// Cached Base64 Data URI for instant, zero-latency rendering of the official Kevalon Tap logo
+let cachedLogoDataUri = '';
+function getBrandLogoSrc() {
+  if (cachedLogoDataUri) return cachedLogoDataUri;
+  try {
+    const candidatePaths = [
+      path.resolve(process.cwd(), 'public', 'kevalon-logo.png'),
+      path.resolve(process.cwd(), 'uploads', 'kevalon-logo.png'),
+    ];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        cachedLogoDataUri = `data:image/png;base64,${fs.readFileSync(p).toString('base64')}`;
+        return cachedLogoDataUri;
+      }
+    }
+  } catch (_) {}
+  return '/kevalon-logo.png';
+}
 
 /**
  * Render a branded HTML status page for non-active or error QR states
@@ -38,9 +59,14 @@ function renderBrandedStatusPage({ title, badge, message, helpText, iconType = '
     <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/50 text-xs font-semibold tracking-wide text-indigo-400 mb-6">
-        <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-        KevalonTap Smart QR
+      <div class="flex items-center justify-center mb-6">
+        <div class="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1.5 shadow-md border border-white/20 inline-flex items-center">
+          <img
+            src="${getBrandLogoSrc()}"
+            alt="Kevalon Tap"
+            class="h-7 w-auto object-contain max-w-[140px]"
+          />
+        </div>
       </div>
 
       <div class="mx-auto w-16 h-16 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mb-6 shadow-inner">
@@ -117,16 +143,18 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
 
     <!-- Brand Header & Status Pill -->
     <div class="flex items-center justify-between gap-3 mb-6">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="7" height="7" rx="1.5" stroke-width="2"/>
-            <rect x="14" y="3" width="7" height="7" rx="1.5" stroke-width="2"/>
-            <rect x="14" y="14" width="7" height="7" rx="1.5" stroke-width="2"/>
-            <rect x="3" y="14" width="7" height="7" rx="1.5" stroke-width="2"/>
-          </svg>
+      <div class="flex items-center">
+        <div class="bg-white/95 backdrop-blur-sm rounded-xl px-2.5 py-1.5 shadow-md border border-white/20 flex items-center">
+          <img
+            src="${getBrandLogoSrc()}"
+            alt="Kevalon Tap"
+            class="h-6 sm:h-7 w-auto object-contain max-w-[130px]"
+            onerror="this.style.display='none'; document.getElementById('brandFallbackText').style.display='inline-flex';"
+          />
+          <span id="brandFallbackText" style="display:none;" class="text-xs font-black tracking-tight text-slate-900">
+            Kevalon<span class="text-indigo-600">Tap</span>
+          </span>
         </div>
-        <span class="text-sm font-extrabold tracking-tight text-white">Kevalon <span class="text-amber-400">One</span></span>
       </div>
 
       <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-semibold text-amber-400">

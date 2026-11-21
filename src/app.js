@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { config } from './config/env.js';
@@ -63,6 +64,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static uploads directory
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
+// Static public directory & direct logo endpoint
+app.use('/public', express.static(path.resolve(process.cwd(), 'public')));
+app.get('/kevalon-logo.png', (req, res) => {
+  const logoPath = path.resolve(process.cwd(), 'public', 'kevalon-logo.png');
+  if (fs.existsSync(logoPath)) {
+    return res.sendFile(logoPath);
+  }
+  const uploadLogoPath = path.resolve(process.cwd(), 'uploads', 'kevalon-logo.png');
+  if (fs.existsSync(uploadLogoPath)) {
+    return res.sendFile(uploadLogoPath);
+  }
+  res.status(404).end();
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -99,6 +114,8 @@ const RESERVED_PREFIXES = new Set([
   't',
   'p',
   'uploads',
+  'public',
+  'kevalon-logo.png',
   'health',
   'favicon.ico',
   'robots.txt',
