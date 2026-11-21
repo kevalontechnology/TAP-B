@@ -5,6 +5,7 @@ import {
   resolveRequest,
   rejectRequest,
   deleteRequest,
+  updateRequestStatus,
 } from '../controllers/requestController.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
@@ -15,6 +16,7 @@ router.use(requireAuth);
 
 router.get('/counts', getRequestCounts);
 router.get('/', listRequests);
+router.patch('/:id/status', updateRequestStatus);
 router.patch('/:id/resolve', resolveRequest);
 router.patch('/:id/reject', rejectRequest);
 router.delete('/:id', requireRole(['SUPER_ADMIN', 'ADMIN']), deleteRequest);

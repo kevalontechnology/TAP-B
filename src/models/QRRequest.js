@@ -30,7 +30,7 @@ const qrRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['PENDING', 'RESOLVED', 'REJECTED'],
+      enum: ['PENDING', 'RESOLVED', 'SOLVED', 'UNSOLVED', 'REJECTED'],
       default: 'PENDING',
       index: true,
     },
