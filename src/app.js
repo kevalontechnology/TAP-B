@@ -77,6 +77,17 @@ app.get('/kevalon-logo.png', (req, res) => {
   }
   res.status(404).end();
 });
+app.get('/kevalon-icon.png', (req, res) => {
+  const iconPath = path.resolve(process.cwd(), 'public', 'kevalon-icon.png');
+  if (fs.existsSync(iconPath)) {
+    return res.sendFile(iconPath);
+  }
+  const uploadIconPath = path.resolve(process.cwd(), 'uploads', 'kevalon-icon.png');
+  if (fs.existsSync(uploadIconPath)) {
+    return res.sendFile(uploadIconPath);
+  }
+  res.status(404).end();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -116,6 +127,7 @@ const RESERVED_PREFIXES = new Set([
   'uploads',
   'public',
   'kevalon-logo.png',
+  'kevalon-icon.png',
   'health',
   'favicon.ico',
   'robots.txt',
