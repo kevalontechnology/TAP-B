@@ -255,6 +255,20 @@ export async function updateProfile(req, res, next) {
     });
 
     await profile.save();
+
+    // Also sync associated QRCode status
+    const nextQrStatus = profile.isActive ? 'ACTIVE' : 'DISABLED';
+    if (profile.linkedQrCode) {
+      await QRCode.updateMany(
+        { publicCode: profile.linkedQrCode },
+        { status: nextQrStatus, updatedBy: req.user?._id }
+      );
+    }
+    const user = await User.findById(profile.userId);
+    if (user?.qrCodeId) {
+      await QRCode.findByIdAndUpdate(user.qrCodeId, { status: nextQrStatus, updatedBy: req.user?._id });
+    }
+
     await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
@@ -299,6 +313,20 @@ export async function toggleStatus(req, res, next) {
     }
 
     await profile.save();
+
+    // Also sync associated QRCode status
+    const nextQrStatus = profile.isActive ? 'ACTIVE' : 'DISABLED';
+    if (profile.linkedQrCode) {
+      await QRCode.updateMany(
+        { publicCode: profile.linkedQrCode },
+        { status: nextQrStatus, updatedBy: req.user?._id }
+      );
+    }
+    const user = await User.findById(profile.userId);
+    if (user?.qrCodeId) {
+      await QRCode.findByIdAndUpdate(user.qrCodeId, { status: nextQrStatus, updatedBy: req.user?._id });
+    }
+
     await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
@@ -647,6 +675,20 @@ export async function addCardToProfile(req, res, next) {
     if (linkedQrCode) profile.linkedQrCode = linkedQrCode.trim();
 
     await profile.save();
+
+    // Also sync associated QRCode status
+    const nextQrStatus = profile.isActive ? 'ACTIVE' : 'DISABLED';
+    if (profile.linkedQrCode) {
+      await QRCode.updateMany(
+        { publicCode: profile.linkedQrCode },
+        { status: nextQrStatus, updatedBy: req.user?._id }
+      );
+    }
+    const user = await User.findById(profile.userId);
+    if (user?.qrCodeId) {
+      await QRCode.findByIdAndUpdate(user.qrCodeId, { status: nextQrStatus, updatedBy: req.user?._id });
+    }
+
     await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
@@ -682,6 +724,20 @@ export async function toggleCardStatus(req, res, next) {
 
     profile.isActive = !profile.isActive;
     await profile.save();
+
+    // Also sync associated QRCode status
+    const nextQrStatus = profile.isActive ? 'ACTIVE' : 'DISABLED';
+    if (profile.linkedQrCode) {
+      await QRCode.updateMany(
+        { publicCode: profile.linkedQrCode },
+        { status: nextQrStatus, updatedBy: req.user?._id }
+      );
+    }
+    const user = await User.findById(profile.userId);
+    if (user?.qrCodeId) {
+      await QRCode.findByIdAndUpdate(user.qrCodeId, { status: nextQrStatus, updatedBy: req.user?._id });
+    }
+
     await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 
@@ -742,6 +798,20 @@ export async function linkQrToCard(req, res, next) {
     }
 
     await profile.save();
+
+    // Also sync associated QRCode status
+    const nextQrStatus = profile.isActive ? 'ACTIVE' : 'DISABLED';
+    if (profile.linkedQrCode) {
+      await QRCode.updateMany(
+        { publicCode: profile.linkedQrCode },
+        { status: nextQrStatus, updatedBy: req.user?._id }
+      );
+    }
+    const user = await User.findById(profile.userId);
+    if (user?.qrCodeId) {
+      await QRCode.findByIdAndUpdate(user.qrCodeId, { status: nextQrStatus, updatedBy: req.user?._id });
+    }
+
     await syncUserQrDestination(profile.userId, req);
     const formatted = await formatProfile(profile, req);
 

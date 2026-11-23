@@ -27,8 +27,8 @@ export async function getActiveBaseUrl(req = null) {
     console.error('[BaseUrlHelper] Failed to read setting from DB:', err.message);
   }
 
-  // Fallback to environment variable
-  if (config.publicQrBaseUrl) {
+  // Fallback to environment variable if explicitly configured with a non-localhost domain
+  if (config.publicQrBaseUrl && !config.publicQrBaseUrl.includes('localhost') && !config.publicQrBaseUrl.includes('127.0.0.1')) {
     cachedBaseUrl = config.publicQrBaseUrl.trim().replace(/\/+$/, '');
     lastFetchTime = now;
     return cachedBaseUrl;
@@ -43,6 +43,12 @@ export async function getActiveBaseUrl(req = null) {
       lastFetchTime = now;
       return cachedBaseUrl;
     }
+  }
+
+  if (config.publicQrBaseUrl) {
+    cachedBaseUrl = config.publicQrBaseUrl.trim().replace(/\/+$/, '');
+    lastFetchTime = now;
+    return cachedBaseUrl;
   }
 
   return 'https://qr.kevalontap.com';

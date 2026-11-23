@@ -3,8 +3,11 @@ import useragent from 'useragent';
 import { DigitalProfile } from '../models/DigitalProfile.js';
 import { ProfileAnalyticsEvent } from '../models/ProfileAnalyticsEvent.js';
 import { VisitorLead } from '../models/VisitorLead.js';
+import { QRCode } from '../models/QRCode.js';
+import { User } from '../models/User.js';
 import { buildVCardString } from './profileController.js';
 import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
+import { renderDisabledPageWithContact } from './redirectController.js';
 import {
   renderProfileHtml,
   renderProfileNotFoundHtml,
@@ -51,10 +54,22 @@ export async function getPublicProfileData(req, res, next) {
       });
     }
 
-    if (!profile.isActive || !profile.isPublic) {
+    // Check if the associated QR code is DISABLED
+    let associatedQr = null;
+    if (profile.linkedQrCode) {
+      associatedQr = await QRCode.findOne({ publicCode: profile.linkedQrCode });
+    }
+    if (!associatedQr && profile.userId) {
+      const user = await User.findById(profile.userId);
+      if (user?.qrCodeId) associatedQr = await QRCode.findById(user.qrCodeId);
+      if (!associatedQr && user?.userCode) associatedQr = await QRCode.findOne({ publicCode: user.userCode });
+    }
+
+    if (!profile.isActive || !profile.isPublic || (associatedQr && associatedQr.status === 'DISABLED')) {
       return res.status(403).json({
         success: false,
         error: 'This profile is currently private or inactive',
+        isQrDisabled: associatedQr?.status === 'DISABLED',
       });
     }
 
@@ -135,12 +150,50 @@ export async function handlePublicProfileView(req, res, next) {
       return res.status(404).send(renderProfileNotFoundHtml({ username }));
     }
 
+    // Check if the associated QR code is DISABLED
+    let associatedQr = null;
+    if (profile.linkedQrCode) {
+      associatedQr = await QRCode.findOne({ publicCode: profile.linkedQrCode });
+    }
+    if (!associatedQr && profile.userId) {
+      const user = await User.findById(profile.userId);
+      if (user?.qrCodeId) {
+        associatedQr = await QRCode.findById(user.qrCodeId);
+      }
+      if (!associatedQr && user?.userCode) {
+        associatedQr = await QRCode.findOne({ publicCode: user.userCode });
+      }
+      if (!associatedQr) {
+        associatedQr = await QRCode.findOne({
+          $or: [
+            { createdBy: profile.userId },
+            { 'assignedTo.customerRefId': String(profile.userId) },
+          ],
+        });
+      }
+    }
+
+    // 1. If QR code is DISABLED: render the branded "Tag Temporarily Inactive" page!
+    if (associatedQr && associatedQr.status === 'DISABLED') {
+      if (isApiRequest) {
+        return res.status(403).json({ success: false, error: 'This QR code is currently disabled' });
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(renderDisabledPageWithContact({ qr: associatedQr, publicCode: associatedQr.publicCode }));
+    }
+
+    // 2. If the profile itself is inactive: also render the branded "Tag Temporarily Inactive" page!
     if (!profile.isActive) {
       if (isApiRequest) {
         return res.status(403).json({ success: false, error: 'This profile is currently inactive' });
       }
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.status(403).send(renderProfileUnavailableHtml({ username, reason: 'inactive' }));
+      const fallbackCode = associatedQr?.publicCode || profile.username;
+      const fallbackQr = associatedQr || {
+        title: `${profile.fullName}'s KevalonTap Card`,
+        assignedTo: { customerName: profile.fullName, mobileNumber: profile.mobileNumber || '' },
+      };
+      return res.status(200).send(renderDisabledPageWithContact({ qr: fallbackQr, publicCode: fallbackCode }));
     }
 
     if (!profile.isPublic) {
