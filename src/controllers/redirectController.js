@@ -91,7 +91,7 @@ function renderBrandedStatusPage({ title, badge, message, helpText, iconType = '
 /**
  * Render Ultra-Premium Redesigned Interactive Disabled Page
  */
-export function renderDisabledPageWithContact({ qr, publicCode }) {
+function renderDisabledPageWithContact({ qr, publicCode }) {
   const phone = config.supportPhone || '+91 98765 43210';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const email = config.supportEmail || 'support@kevalon.com';
@@ -551,20 +551,6 @@ export async function handleRedirect(req, res) {
       if (userId) {
         const activeProfile = await getActiveProfileForUser(userId);
         if (activeProfile) {
-          if (!activeProfile.isActive) {
-            await recordScan({
-              qrCodeId: qr._id,
-              publicCode,
-              req,
-              redirectStatus: 'DISABLED',
-            });
-            return res.status(200).send(
-              renderDisabledPageWithContact({
-                qr,
-                publicCode,
-              })
-            );
-          }
           const profileBaseUrl = await getActiveProfileBaseUrl(req);
           destinationUrl = `${profileBaseUrl}/${activeProfile.username}`;
         }
