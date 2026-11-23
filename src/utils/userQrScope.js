@@ -26,6 +26,14 @@ export async function getUserQrFilter(user) {
     { 'assignedTo.customerRefId': String(user._id) },
   ];
 
+  if (user.qrCodeId) {
+    orConditions.push({ _id: user.qrCodeId });
+  }
+
+  if (user.userCode && user.userCode.trim()) {
+    orConditions.push({ publicCode: user.userCode.trim() });
+  }
+
   if (user.phone && user.phone.trim()) {
     orConditions.push({ 'assignedTo.mobileNumber': user.phone.trim() });
   }
