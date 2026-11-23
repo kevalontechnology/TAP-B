@@ -859,8 +859,8 @@ export function renderProfileNotFoundHtml({ username }) {
       The profile <strong class="text-white font-mono">@${sanitizeHtml(username)}</strong> does not exist or has been removed.
     </p>
     <div class="pt-2">
-      <a href="https://kevalon.com" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
-        Visit Kevalon.com
+      <a href="https://www.kevalontechnology.in/" target="_blank" rel="noopener noreferrer" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
+        Visit Kevalon website
       </a>
     </div>
   </div>
@@ -896,8 +896,8 @@ export function renderProfileUnavailableHtml({ username, reason = 'private' }) {
     <h1 class="text-xl font-bold text-white">${title}</h1>
     <p class="text-xs text-slate-400 leading-relaxed">${desc}</p>
     <div class="pt-2">
-      <a href="https://kevalon.com" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
-        Visit Kevalon.com
+      <a href="https://www.kevalontechnology.in/" target="_blank" rel="noopener noreferrer" class="inline-block px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-colors">
+        Visit Kevalon website
       </a>
     </div>
   </div>
