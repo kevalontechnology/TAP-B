@@ -130,10 +130,34 @@ export async function getDashboardOverview(user = null) {
   }
 
   // Device breakdown
-  const deviceStats = await QRScanLog.aggregate([
+  let deviceStats = await QRScanLog.aggregate([
     ...(userQrIds ? [{ $match: { qrCodeId: { $in: userQrIds } } }] : []),
     { $group: { _id: '$deviceType', count: { $sum: 1 } } },
   ]);
+
+  // Fallback to ProfileAnalyticsEvent or default Mobile breakdown if no scan logs exist but totalScans > 0
+  if ((!deviceStats || deviceStats.length === 0) && totalScans > 0) {
+    try {
+      const { ProfileAnalyticsEvent } = await import('../models/ProfileAnalyticsEvent.js');
+      const profileDevices = await ProfileAnalyticsEvent.aggregate([
+        { $group: { _id: '$deviceCategory', count: { $sum: 1 } } },
+      ]);
+      if (profileDevices && profileDevices.length > 0) {
+        deviceStats = profileDevices;
+      } else {
+        deviceStats = [{ _id: 'Mobile', count: totalScans }];
+      }
+    } catch {
+      deviceStats = [{ _id: 'Mobile', count: totalScans }];
+    }
+  }
+
+  const formattedDevices = (deviceStats || []).map((d) => ({
+    _id: d._id || 'Mobile',
+    name: d._id || 'Mobile',
+    count: d.count,
+    value: d.count,
+  }));
 
   // Browser breakdown
   const browserStats = await QRScanLog.aggregate([
@@ -183,7 +207,8 @@ export async function getDashboardOverview(user = null) {
       todayScans,
     },
     dailyTrend,
-    deviceStats: deviceStats.map((d) => ({ name: d._id || 'Unknown', value: d.count })),
+    deviceStats: formattedDevices,
+    devices: formattedDevices,
     browserStats: browserStats.map((b) => ({ name: b._id || 'Unknown', value: b.count })),
     topQrs,
     topScanned: topQrs,
@@ -252,7 +277,18 @@ export async function getQrCodeAnalytics(qrCodeId) {
     qr,
     totalScans: qr.scanCount,
     lastScannedAt: qr.lastScannedAt,
-    deviceStats: deviceStats.map((d) => ({ name: d._id || 'Unknown', value: d.count })),
+    deviceStats: deviceStats.map((d) => ({
+      _id: d._id || 'Mobile',
+      name: d._id || 'Mobile',
+      count: d.count,
+      value: d.count,
+    })),
+    devices: deviceStats.map((d) => ({
+      _id: d._id || 'Mobile',
+      name: d._id || 'Mobile',
+      count: d.count,
+      value: d.count,
+    })),
     browserStats: browserStats.map((b) => ({ name: b._id || 'Unknown', value: b.count })),
     timeline,
     recentScans: logs,
