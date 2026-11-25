@@ -90,21 +90,164 @@ function renderBrandedStatusPage({ title, badge, message, helpText, iconType = '
 }
 
 /**
- * Render Ultra-Premium Redesigned Interactive Disabled Page
+ * Helper to escape HTML characters safely
  */
-function renderDisabledPageWithContact({ qr, publicCode }) {
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Render Ultra-Premium Redesigned Interactive Disabled Page
+ * Dynamically displays Rejected / Unsolved / Pending status if an activation request exists.
+ */
+function renderDisabledPageWithContact({ qr, publicCode, latestRequest = null }) {
   const phone = config.supportPhone || '+91 98765 43210';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const email = config.supportEmail || 'support@kevalon.com';
-  const waText = encodeURIComponent(`Hello KevalonTap Support, I scanned QR Code (${publicCode}: ${qr.title}) and it is currently Disabled. Please help activate it.`);
+
+  const reqStatus = latestRequest ? String(latestRequest.status || '').toUpperCase() : '';
+  const isRejected = reqStatus === 'REJECTED';
+  const isUnsolved = reqStatus === 'UNSOLVED';
+  const isPending = reqStatus === 'PENDING';
+  const hasReason = Boolean(latestRequest && latestRequest.adminNote && latestRequest.adminNote.trim());
+  const adminReason = hasReason ? escapeHtml(latestRequest.adminNote.trim()) : '';
+
+  let waStatusNote = 'Disabled';
+  if (isRejected) waStatusNote = 'Activation Request Rejected';
+  else if (isUnsolved) waStatusNote = 'Activation Request Unsolved';
+  else if (isPending) waStatusNote = 'Activation Request Pending';
+
+  const waText = encodeURIComponent(`Hello KevalonTap Support, I scanned QR Code (${publicCode}: ${qr.title || ''}) and it is currently ${waStatusNote}. Please help.`);
   const waUrl = `https://wa.me/${cleanPhone}?text=${waText}`;
+
+  let pageTitle = 'QR Code Inactive | KevalonTap Smart Tag';
+  let topGradientClass = 'from-amber-500/40 via-orange-500 to-amber-500/40';
+
+  let statusPillHtml = `
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-semibold text-amber-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+        QR Code Disabled &bull; Temporarily Paused
+      </div>
+  `;
+
+  let heroIconHtml = `
+      <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-3xl bg-amber-500/15 blur-lg pulse-ring"></div>
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/30 flex items-center justify-center shadow-inner">
+          <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+  `;
+
+  let headingTitle = 'Tag Temporarily Inactive';
+  let subtitleText = 'This dynamic smart QR code is temporarily deactivated by the owner or administrator. Choose an option below for fast assistance.';
+  let reasonBoxHtml = '';
+
+  if (isRejected) {
+    pageTitle = 'Activation Request Rejected | KevalonTap Smart Tag';
+    topGradientClass = 'from-rose-500/40 via-red-500 to-rose-500/40';
+    statusPillHtml = `
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-[11px] font-semibold text-rose-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+        Request Rejected &bull; Declined
+      </div>
+    `;
+    heroIconHtml = `
+      <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-3xl bg-rose-500/15 blur-lg pulse-ring"></div>
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-rose-500/20 to-red-500/10 border border-rose-500/30 flex items-center justify-center shadow-inner">
+          <svg class="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+    `;
+    headingTitle = 'Activation Request Rejected';
+    subtitleText = 'The activation request for this QR code was reviewed and rejected by the administrator.';
+    if (adminReason) {
+      reasonBoxHtml = `
+        <div class="mt-4 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-left text-xs">
+          <div class="flex items-center gap-1.5 font-bold text-rose-300 mb-1">
+            <svg class="w-4 h-4 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>Reason for Rejection:</span>
+          </div>
+          <p class="text-rose-200/90 leading-relaxed font-medium pl-5.5">${adminReason}</p>
+        </div>
+      `;
+    }
+  } else if (isUnsolved) {
+    pageTitle = 'Activation Request Unsolved | KevalonTap Smart Tag';
+    topGradientClass = 'from-orange-500/40 via-amber-500 to-orange-500/40';
+    statusPillHtml = `
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-[11px] font-semibold text-orange-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping"></span>
+        Request Unsolved &bull; Investigation Required
+      </div>
+    `;
+    heroIconHtml = `
+      <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-3xl bg-orange-500/15 blur-lg pulse-ring"></div>
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-orange-500/20 to-amber-500/10 border border-orange-500/30 flex items-center justify-center shadow-inner">
+          <svg class="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+      </div>
+    `;
+    headingTitle = 'Activation Request Unsolved';
+    subtitleText = 'The activation request for this QR code is currently unsolved and awaiting further resolution.';
+    if (adminReason) {
+      reasonBoxHtml = `
+        <div class="mt-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-left text-xs">
+          <div class="flex items-center gap-1.5 font-bold text-amber-300 mb-1">
+            <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>Reason / Unsolved Note:</span>
+          </div>
+          <p class="text-amber-200/90 leading-relaxed font-medium pl-5.5">${adminReason}</p>
+        </div>
+      `;
+    }
+  } else if (isPending) {
+    pageTitle = 'Activation Request Pending | KevalonTap Smart Tag';
+    topGradientClass = 'from-amber-500/40 via-yellow-500 to-amber-500/40';
+    statusPillHtml = `
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-semibold text-amber-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+        Request Submitted &bull; Under Review
+      </div>
+    `;
+    heroIconHtml = `
+      <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-3xl bg-amber-500/15 blur-lg pulse-ring"></div>
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/30 flex items-center justify-center shadow-inner">
+          <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+    `;
+    headingTitle = 'Activation Request Pending';
+    subtitleText = 'Your request to activate this QR code has been received and is currently under review by the administrator.';
+  }
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Inactive | KevalonTap Smart Tag</title>
+  <title>${pageTitle}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,7 +278,7 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
 
   <div class="max-w-md w-full glass-panel rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all duration-300">
     <!-- Subtle gradient border line at top -->
-    <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500/40 via-orange-500 to-amber-500/40"></div>
+    <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${topGradientClass}"></div>
 
     <!-- Brand Header & Status Pill -->
     <div class="flex items-center justify-between gap-3 mb-6">
@@ -151,37 +294,29 @@ function renderDisabledPageWithContact({ qr, publicCode }) {
         <span class="text-sm font-extrabold tracking-tight text-white">Kevalon <span class="text-amber-400">Tap</span></span>
       </div>
 
-      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-semibold text-amber-400">
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-        QR Code Disabled &bull; Temporarily Paused
-      </div>
+      ${statusPillHtml}
     </div>
 
     <!-- Hero Icon & Title Section -->
     <div class="text-center mb-6">
-      <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-3xl bg-amber-500/15 blur-lg pulse-ring"></div>
-        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/30 flex items-center justify-center shadow-inner">
-          <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-        </div>
-      </div>
+      ${heroIconHtml}
 
       <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight mb-2">
-        Tag Temporarily Inactive
+        ${headingTitle}
       </h1>
       
       <!-- Tag ID chip -->
       <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-mono text-slate-300 mb-3">
         <span class="text-slate-500">ID:</span>
-        <strong class="text-amber-400 font-bold">${publicCode}</strong>
-        ${qr.title ? `<span class="text-slate-600">&bull;</span><span class="text-slate-300 truncate max-w-[140px]">${qr.title}</span>` : ''}
+        <strong class="${isRejected ? 'text-rose-400' : isUnsolved ? 'text-orange-400' : 'text-amber-400'} font-bold">${publicCode}</strong>
+        ${qr.title ? `<span class="text-slate-600">&bull;</span><span class="text-slate-300 truncate max-w-[140px]">${escapeHtml(qr.title)}</span>` : ''}
       </div>
 
       <p class="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">
-        This dynamic smart QR code is temporarily deactivated by the owner or administrator. Choose an option below for fast assistance.
+        ${subtitleText}
       </p>
+
+      ${reasonBoxHtml}
     </div>
 
     <!-- Segmented Tab Buttons (Direct Contact vs Request Activation) -->
@@ -510,10 +645,20 @@ export async function handleRedirect(req, res) {
         redirectStatus: 'DISABLED',
       });
 
+      // Find the most recent activation request for this QR code
+      const latestRequest = await QRRequest.findOne({
+        $or: [
+          { qrCodeId: qr._id },
+          { publicCode: qr.publicCode },
+          { publicCode },
+        ],
+      }).sort({ createdAt: -1 });
+
       return res.status(200).send(
         renderDisabledPageWithContact({
           qr,
           publicCode,
+          latestRequest,
         })
       );
     }
