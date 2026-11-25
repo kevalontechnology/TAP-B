@@ -21,4 +21,12 @@ export const config = {
   supportPhone: process.env.SUPPORT_PHONE || '+91 98765 43210',
   supportEmail: process.env.SUPPORT_EMAIL || 'support@kevalon.com',
   supportWhatsApp: process.env.SUPPORT_WHATSAPP || '+919876543210',
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'vwdk95bg',
+    apiKey: process.env.CLOUDINARY_API_KEY || '255492677923369',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || 'ngx40iO_98T5ONtQg08UgHKgbFA',
+    url:
+      process.env.CLOUDINARY_URL ||
+      'cloudinary://255492677923369:ngx40iO_98T5ONtQg08UgHKgbFA@vwdk95bg',
+  },
 };

@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { uploadMedia } from '../middleware/upload.js';
+import { uploadToCloudinary } from '../services/cloudinaryService.js';
 import {
   listProfiles,
   getProfileById,
@@ -27,24 +28,45 @@ import { getProfileLeads } from '../controllers/leadController.js';
 
 const router = express.Router();
 
-// File Upload for Profiles (Photos, Logos, Gallery Images, PDF Brochure)
-router.post('/upload', requireAuth, uploadMedia.single('file'), (req, res) => {
+// File Upload for Profiles (Photos, Logos, Gallery Images, PDF Brochure) with Cloudinary Storage
+router.post('/upload', requireAuth, uploadMedia.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'No file uploaded' });
   }
-  const host = req.get('host');
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-  const fullUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
-  const fileUrl = `/uploads/${req.file.filename}`;
-  return res.status(200).json({
-    success: true,
-    message: 'File uploaded successfully',
-    url: fullUrl,
-    relativeUrl: fileUrl,
-    filename: req.file.filename,
-    mimetype: req.file.mimetype,
-    size: req.file.size,
-  });
+
+  try {
+    const cloudRes = await uploadToCloudinary(req.file.path, {
+      folder: 'tapzy_profiles',
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'File uploaded successfully to Cloudinary',
+      url: cloudRes.secure_url,
+      relativeUrl: cloudRes.secure_url,
+      public_id: cloudRes.public_id,
+      format: cloudRes.format,
+      resource_type: cloudRes.resource_type,
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    });
+  } catch (cloudErr) {
+    console.error('[Upload] Cloudinary upload failed, falling back to local storage:', cloudErr.message);
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const fullUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    const fileUrl = `/uploads/${req.file.filename}`;
+    return res.status(200).json({
+      success: true,
+      message: 'File uploaded locally (fallback)',
+      url: fullUrl,
+      relativeUrl: fileUrl,
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    });
+  }
 });
 
 // Explicit User Application Routes (/my, /my/:id, and /my-cards must be defined BEFORE /:id)
