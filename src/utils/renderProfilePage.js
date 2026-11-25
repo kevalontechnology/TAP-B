@@ -3,6 +3,7 @@
  * Premium Dark Obsidian & Cyan Theme matching KevalonTap Digital Business Cards
  * Strict Conditional Rendering: Sections and rows are ONLY shown if data exists.
  */
+import { GPAY_ICON, PHONEPE_ICON, PAYTM_ICON } from './paymentIcons.js';
 
 function sanitizeHtml(str = '') {
   if (typeof str !== 'string') return '';
@@ -305,7 +306,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           <!-- Floating Company Logo Badge (Top Right) -->
           ${
             companyLogo
-              ? `<div class="absolute top-4 right-4 w-12 h-12 rounded-full p-1 bg-white/15 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center overflow-hidden">
+              ? `<div class="absolute top-4 right-4 w-12 h-12 rounded-full p-1 bg-white border-2 border-white/90 shadow-xl flex items-center justify-center overflow-hidden">
                    <img src="${companyLogo}" alt="Company Logo" class="w-full h-full object-contain rounded-full" />
                  </div>`
               : ''
@@ -643,8 +644,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           const handle = /^\d{10}$/.test(profile.googlePay.trim()) ? `${profile.googlePay.trim()}@okaxis` : profile.googlePay.trim();
           activePaymentApps.push({
             name: 'Google Pay',
-            badge: 'G',
-            badgeColor: 'text-sky-400',
+            icon: GPAY_ICON,
             url: `tez://upi/pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
             fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
           });
@@ -653,8 +653,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           const handle = /^\d{10}$/.test(profile.phonePe.trim()) ? `${profile.phonePe.trim()}@ybl` : profile.phonePe.trim();
           activePaymentApps.push({
             name: 'PhonePe',
-            badge: 'Pe',
-            badgeColor: 'text-purple-400',
+            icon: PHONEPE_ICON,
             url: `phonepe://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
             fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
           });
@@ -663,8 +662,7 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
           const handle = /^\d{10}$/.test(profile.paytm.trim()) ? `${profile.paytm.trim()}@paytm` : profile.paytm.trim();
           activePaymentApps.push({
             name: 'Paytm',
-            badge: 'Pay',
-            badgeColor: 'text-blue-400',
+            icon: PAYTM_ICON,
             url: `paytmmp://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`,
             fallbackUrl: `upi://pay?pa=${encodeURIComponent(handle)}&pn=${payeeName}&cu=INR`
           });
@@ -702,7 +700,9 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
             .map(
               (app) => `
           <a href="${app.fallbackUrl}" onclick="window.location.href='${app.url}'; setTimeout(function(){ window.location.href='${app.fallbackUrl}'; }, 600); return false;" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-white active:scale-95 transition-all shadow-md group">
-            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs ${app.badgeColor} mb-1">${app.badge}</span>
+            <div class="mb-1 group-hover:scale-105 transition-transform flex items-center justify-center">
+              ${app.icon}
+            </div>
             <span class="text-[10px] font-bold text-slate-200">${app.name}</span>
           </a>`
             )
@@ -754,18 +754,6 @@ export function renderProfileHtml({ profile, publicUrl, vcfUrl }) {
       ${ICONS.download}
       <span>Save Contact</span>
     </a>
-
-    ${
-      defaultUpi
-        ? `
-    <button type="button" onclick="window.location.href='upi://pay?pa=${encodeURIComponent(
-      defaultUpi
-    )}&pn=${payeeName}&cu=INR'; document.getElementById('payment-section')?.scrollIntoView({behavior:'smooth'});" class="flex-1 py-3 px-3 rounded-full font-black text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 active:scale-95 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md truncate">
-      ${ICONS.creditCard}
-      <span>Pay Now</span>
-    </button>`
-        : ''
-    }
 
     <!-- Share Contact Button (Dark Obsidian Pill) -->
     <button type="button" id="share-contact-btn" class="py-3 px-3.5 rounded-full font-black text-xs text-white bg-[#101522] border border-slate-700/80 hover:bg-[#182033] active:scale-95 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0">
