@@ -1,6 +1,7 @@
 import { QRRequest } from '../models/QRRequest.js';
 import { QRCode } from '../models/QRCode.js';
 import { logAuditAction } from '../services/auditService.js';
+import { createActivationStatusNotification } from '../services/notificationService.js';
 
 /**
  * List activation requests submitted for disabled QR codes
@@ -146,6 +147,16 @@ export async function updateRequestStatus(req, res, next) {
 
     await request.save();
 
+    // Trigger notification for customer with status and reason/note
+    if (['SOLVED', 'RESOLVED', 'REJECTED', 'UNSOLVED'].includes(targetStatus)) {
+      await createActivationStatusNotification({
+        request,
+        status: targetStatus,
+        reason: adminNote,
+        adminUser: req.user,
+      });
+    }
+
     // If marked solved and activateQr requested, reactivate the QR code
     if ((targetStatus === 'SOLVED' || targetStatus === 'RESOLVED') && activateQr) {
       let targetQr = null;
@@ -201,6 +212,14 @@ export async function resolveRequest(req, res, next) {
     request.resolvedAt = new Date();
     if (adminNote) request.adminNote = adminNote.trim();
     await request.save();
+
+    // Trigger notification for customer
+    await createActivationStatusNotification({
+      request,
+      status: 'SOLVED',
+      reason: adminNote,
+      adminUser: req.user,
+    });
 
     let qrReactivated = false;
     let targetQr = null;
@@ -271,6 +290,14 @@ export async function rejectRequest(req, res, next) {
     request.resolvedAt = new Date();
     if (adminNote) request.adminNote = adminNote.trim();
     await request.save();
+
+    // Trigger notification for customer
+    await createActivationStatusNotification({
+      request,
+      status: 'REJECTED',
+      reason: adminNote,
+      adminUser: req.user,
+    });
 
     const populated = await QRRequest.findById(request._id)
       .populate('qrCodeId', 'title publicCode destinationUrl status assignedTo')

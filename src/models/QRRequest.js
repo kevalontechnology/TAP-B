@@ -8,6 +8,12 @@ const qrRequestSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
     publicCode: {
       type: String,
       required: true,

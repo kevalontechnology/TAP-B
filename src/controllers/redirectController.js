@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { QRCode } from '../models/QRCode.js';
 import { QRRequest } from '../models/QRRequest.js';
+import { User } from '../models/User.js';
 import { recordScan } from '../services/analyticsService.js';
 import { logAuditAction } from '../services/auditService.js';
 import { validateDestinationSafety } from '../utils/urlSafety.js';
@@ -643,10 +644,34 @@ export async function handleActivationRequest(req, res) {
 
     const qr = await QRCode.findOne({ publicCode });
 
+    let matchedUserId = null;
+    if (qr) {
+      if (qr.assignedTo?.customerRefId) {
+        matchedUserId = qr.assignedTo.customerRefId;
+      } else if (qr.createdBy) {
+        matchedUserId = qr.createdBy;
+      }
+    }
+    if (!matchedUserId && cleanNumber) {
+      const cleanDigits = cleanNumber.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.slice(-10);
+      if (last10) {
+        const userMatch = await User.findOne({
+          $or: [
+            { phone: cleanNumber },
+            { phone: cleanDigits },
+            { phone: { $regex: `${last10}$` } },
+          ],
+        });
+        if (userMatch) matchedUserId = userMatch._id;
+      }
+    }
+
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
 
     const request = await QRRequest.create({
       qrCodeId: qr ? qr._id : null,
+      userId: matchedUserId,
       publicCode,
       requesterName: cleanName,
       contactNumber: cleanNumber,

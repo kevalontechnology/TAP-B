@@ -20,6 +20,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import adminProfileRoutes from './routes/adminProfileRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import publicProfileRoutes from './routes/publicProfileRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { trackLinkAndRedirect, downloadPublicVcf, getPublicProfileData, handlePublicProfileView } from './controllers/publicProfileController.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -117,6 +118,7 @@ app.use('/api/admin/profiles', adminProfileRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/public', publicProfileRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 5. Root-level Public Profile & vCard Handlers (e.g. https://tap-b.onrender.com/:username)
 const RESERVED_PREFIXES = new Set([
