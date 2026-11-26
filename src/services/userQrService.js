@@ -19,11 +19,13 @@ async function getUniqueCode() {
 }
 
 /**
- * Ensure a user has exactly ONE permanent Smart Card QR code.
- * If user already has one, return it.
- * If not, create and assign it permanently to the user.
+ * Retrieve a user's existing permanent Smart Card QR code if one exists.
+ * Does NOT generate a new QR code automatically.
+ *
+ * @param {Object} user - User document or object with _id
+ * @returns {Promise<Object|null>} Existing QRCode or null
  */
-export async function ensureUserQrCode(user, req = null) {
+export async function getUserQrCode(user) {
   if (!user) return null;
 
   const userId = user._id || user.id;
@@ -53,7 +55,7 @@ export async function ensureUserQrCode(user, req = null) {
   }
 
   // 3. Check if a QRCode already exists for this user in database
-  let qr = await QRCode.findOne({
+  const qr = await QRCode.findOne({
     $or: [
       { createdBy: userId },
       { 'assignedTo.customerRefId': String(userId) },
@@ -77,7 +79,29 @@ export async function ensureUserQrCode(user, req = null) {
     return qr;
   }
 
-  // 4. Otherwise, generate a brand new permanent QRCode for this user
+  return null;
+}
+
+/**
+ * Ensure a user has a permanent Smart Card QR code.
+ * By default (allowCreate: false), it only looks up existing QR codes and will NOT auto-create.
+ * A QR code is created ONLY when explicitly requested (e.g. by Admin operations).
+ */
+export async function ensureUserQrCode(user, req = null, { allowCreate = false } = {}) {
+  if (!user) return null;
+
+  // 1. Check if user already has an existing QR code
+  const existing = await getUserQrCode(user);
+  if (existing) return existing;
+
+  // 2. If creation is not explicitly authorized (e.g. user signup, profile create), DO NOT generate!
+  if (!allowCreate) {
+    return null;
+  }
+
+  const userId = user._id || user.id;
+
+  // 3. Otherwise, generate a brand new permanent QRCode for this user
   const publicCode = await getUniqueCode();
   const profileBaseUrl = await getActiveProfileBaseUrl(req);
 
@@ -89,7 +113,7 @@ export async function ensureUserQrCode(user, req = null) {
 
   const destinationUrl = initialProfile ? `${profileBaseUrl}/${initialProfile.username}` : '';
 
-  qr = await QRCode.create({
+  const qr = await QRCode.create({
     publicCode,
     title: `${user.name || 'User'}'s KevalonTap Card`,
     description: `Universal KevalonTap Smart QR permanently assigned to ${user.name || 'Customer'}`,
@@ -145,7 +169,8 @@ export async function syncUserQrDestination(userId, req = null) {
     const user = await User.findById(userId);
     if (!user) return null;
 
-    const qr = await ensureUserQrCode(user, req);
+    // Only sync if the user already has a QR code assigned by Admin. Do NOT auto-create.
+    const qr = await getUserQrCode(user);
     if (!qr) return null;
 
     const activeProfile = await getActiveProfileForUser(userId);

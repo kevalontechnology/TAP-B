@@ -6,7 +6,7 @@ import { VisitorLead } from '../models/VisitorLead.js';
 import { QRCode } from '../models/QRCode.js';
 import { getActiveProfileBaseUrl, getActiveBaseUrl } from '../utils/baseUrlHelper.js';
 import { createProfileSchema, updateProfileSchema } from '../validators/profileValidator.js';
-import { ensureUserQrCode, syncUserQrDestination } from '../services/userQrService.js';
+import { getUserQrCode, syncUserQrDestination } from '../services/userQrService.js';
 
 /**
  * Format profile with public URL and computed metrics
@@ -146,9 +146,9 @@ export async function createProfile(req, res, next) {
         ? false
         : true;
 
-    // Ensure user has their permanent 1 Smart Card QR code
+    // Retrieve existing user QR code if assigned by Admin (do NOT auto-generate)
     const user = await User.findById(targetUserId);
-    const userQr = user ? await ensureUserQrCode(user, req) : null;
+    const userQr = user ? await getUserQrCode(user) : null;
 
     const newProfile = await DigitalProfile.create({
       ...validated,
@@ -418,9 +418,9 @@ export async function getProfileQr(req, res, next) {
       });
     }
 
-    // Retrieve the user owner and their single permanent Smart Card QR code
+    // Retrieve the user owner and their single permanent Smart Card QR code (if assigned by Admin)
     const user = await User.findById(profile.userId);
-    const userQr = user ? await ensureUserQrCode(user, req) : null;
+    const userQr = user ? await getUserQrCode(user) : null;
 
     const shortBaseUrl = await getActiveBaseUrl(req);
     const profileBaseUrl = await getActiveProfileBaseUrl(req);

@@ -7,7 +7,7 @@ import { PhoneOtp } from '../models/PhoneOtp.js';
 import { VisitorLead } from '../models/VisitorLead.js';
 import { ProfileAnalyticsEvent } from '../models/ProfileAnalyticsEvent.js';
 import { QRCode } from '../models/QRCode.js';
-import { ensureUserQrCode } from '../services/userQrService.js';
+import { getUserQrCode } from '../services/userQrService.js';
 import { config } from '../config/env.js';
 import {
   loginSchema,
@@ -140,9 +140,6 @@ export async function register(req, res, next) {
       lastLogin: new Date(),
     });
 
-    // Generate exactly 1 permanent Smart Card QR code for this user account
-    const userQr = await ensureUserQrCode(user, req);
-
     const token = generateToken(user);
 
     return res.status(201).json({
@@ -152,7 +149,7 @@ export async function register(req, res, next) {
       user: {
         id: user._id,
         name: user.name,
-        userCode: user.userCode || userQr?.publicCode || '',
+        userCode: user.userCode || '',
         email: user.email,
         phone: user.phone || '',
         dob: user.dob || null,
@@ -175,7 +172,12 @@ export async function logout(req, res) {
 
 export async function getMe(req, res) {
   if (!req.user.userCode) {
-    await ensureUserQrCode(req.user, req);
+    const existingQr = await getUserQrCode(req.user);
+    if (existingQr) {
+      req.user.userCode = existingQr.publicCode;
+      req.user.qrCodeId = existingQr._id;
+      await req.user.save().catch(() => {});
+    }
   }
   return res.status(200).json({
     success: true,

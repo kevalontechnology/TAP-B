@@ -2,6 +2,8 @@ import { QRCode } from '../models/QRCode.js';
 import { QRBatch } from '../models/QRBatch.js';
 import { QRAuditLog } from '../models/QRAuditLog.js';
 import { DigitalProfile } from '../models/DigitalProfile.js';
+import { User } from '../models/User.js';
+import { syncUserQrDestination } from '../services/userQrService.js';
 import {
   createSingleQr,
   generateBulkQrs,
@@ -28,7 +30,7 @@ export async function create(req, res, next) {
     const validated = createQrSchema.parse(req.body);
     const qr = await createSingleQr(validated, req.user);
 
-    // If linked to a digital profile, automatically update the profile
+    // If linked to a digital profile, automatically update the profile & user
     if (validated.profileId) {
       const profile = await DigitalProfile.findById(validated.profileId);
       if (profile) {
@@ -36,7 +38,25 @@ export async function create(req, res, next) {
         profile.cardLinked = true;
         profile.cardLinkedAt = new Date();
         await profile.save();
+
+        if (profile.userId) {
+          await User.findByIdAndUpdate(profile.userId, {
+            qrCodeId: qr._id,
+            userCode: qr.publicCode,
+          });
+          await syncUserQrDestination(profile.userId, req).catch(() => {});
+        }
       }
+    }
+
+    // If assigned to a customer directly, link QR code to their account
+    const customerRefId = validated.assignedTo?.customerRefId;
+    if (customerRefId) {
+      await User.findByIdAndUpdate(customerRefId, {
+        qrCodeId: qr._id,
+        userCode: qr.publicCode,
+      }).catch(() => {});
+      await syncUserQrDestination(customerRefId, req).catch(() => {});
     }
 
     return res.status(201).json({
@@ -269,6 +289,17 @@ export async function assignHandler(req, res, next) {
   try {
     const validated = assignQrSchema.parse(req.body);
     const qr = await assignQr(req.params.id, validated, req.user);
+
+    // If customerRefId is provided, link to customer user account & sync destination
+    const customerRefId = validated.customerRefId;
+    if (customerRefId) {
+      await User.findByIdAndUpdate(customerRefId, {
+        qrCodeId: qr._id,
+        userCode: qr.publicCode,
+      }).catch(() => {});
+      await syncUserQrDestination(customerRefId, req).catch(() => {});
+    }
+
     const baseUrl = await getActiveBaseUrl(req);
     const qrObj = {
       ...qr.toJSON(),

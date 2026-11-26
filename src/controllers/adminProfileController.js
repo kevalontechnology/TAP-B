@@ -5,7 +5,7 @@ import { VisitorLead } from '../models/VisitorLead.js';
 import { getActiveProfileBaseUrl } from '../utils/baseUrlHelper.js';
 import { createProfileSchema, updateProfileSchema } from '../validators/profileValidator.js';
 import { logAuditAction } from '../services/auditService.js';
-import { ensureUserQrCode, syncUserQrDestination } from '../services/userQrService.js';
+import { getUserQrCode, syncUserQrDestination } from '../services/userQrService.js';
 
 /**
  * Format profile with public URL and computed telemetry metrics
@@ -261,9 +261,9 @@ export async function createAdminProfile(req, res, next) {
       await DigitalProfile.updateMany({ userId: targetUserId }, { isDefault: false });
     }
 
-    // Ensure target user has their permanent Smart Card QR code
+    // Retrieve existing QR code if assigned by Admin (do NOT auto-generate)
     const targetUser = await User.findById(targetUserId);
-    const userQr = targetUser ? await ensureUserQrCode(targetUser, req) : null;
+    const userQr = targetUser ? await getUserQrCode(targetUser) : null;
 
     const newProfile = await DigitalProfile.create({
       ...validated,
