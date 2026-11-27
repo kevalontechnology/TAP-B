@@ -83,67 +83,13 @@ export async function getUserQrCode(user) {
 }
 
 /**
- * Ensure a user has a permanent Smart Card QR code.
- * By default (allowCreate: false), it only looks up existing QR codes and will NOT auto-create.
- * A QR code is created ONLY when explicitly requested (e.g. by Admin operations).
+ * Retrieve a user's permanent Smart Card QR code if one exists.
+ * Does NOT generate a new QR code automatically under any circumstances.
+ * QR codes are strictly created by Admin operations.
  */
-export async function ensureUserQrCode(user, req = null, { allowCreate = false } = {}) {
+export async function ensureUserQrCode(user) {
   if (!user) return null;
-
-  // 1. Check if user already has an existing QR code
-  const existing = await getUserQrCode(user);
-  if (existing) return existing;
-
-  // 2. If creation is not explicitly authorized (e.g. user signup, profile create), DO NOT generate!
-  if (!allowCreate) {
-    return null;
-  }
-
-  const userId = user._id || user.id;
-
-  // 3. Otherwise, generate a brand new permanent QRCode for this user
-  const publicCode = await getUniqueCode();
-  const profileBaseUrl = await getActiveProfileBaseUrl(req);
-
-  // Check if user already has an active profile to set as initial destinationUrl
-  const initialProfile =
-    (await DigitalProfile.findOne({ userId, isDefault: true })) ||
-    (await DigitalProfile.findOne({ userId, isActive: true })) ||
-    (await DigitalProfile.findOne({ userId }));
-
-  const destinationUrl = initialProfile ? `${profileBaseUrl}/${initialProfile.username}` : '';
-
-  const qr = await QRCode.create({
-    publicCode,
-    title: `${user.name || 'User'}'s KevalonTap Card`,
-    description: `Universal KevalonTap Smart QR permanently assigned to ${user.name || 'Customer'}`,
-    destinationType: 'KEVALON_PROFILE',
-    destinationUrl,
-    status: 'ACTIVE',
-    assignedTo: {
-      customerName: user.name || 'Customer',
-      mobileNumber: user.phone || '',
-      customerRefId: String(userId),
-      note: 'Account Universal QR Code',
-    },
-    assignedAt: new Date(),
-    createdBy: userId,
-  });
-
-  await User.findByIdAndUpdate(userId, {
-    qrCodeId: qr._id,
-    userCode: publicCode,
-  });
-  user.qrCodeId = qr._id;
-  user.userCode = publicCode;
-
-  // Link any profiles of this user to this code
-  await DigitalProfile.updateMany(
-    { userId },
-    { linkedQrCode: publicCode }
-  );
-
-  return qr;
+  return await getUserQrCode(user);
 }
 
 /**
